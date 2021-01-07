@@ -4,18 +4,22 @@ import subprocess
 import threading
 import time
 from copy import deepcopy
+import sys
+
 class manager:
     def __init__(self):
         self.frames = []
         self.keep_going = True
 
-def recordData(m, CHUNK, stream):
+def recordData(m, m_to_store, CHUNK, stream):
     while m.keep_going:
         data = stream.read(CHUNK)
         m.frames.append(data)
+        if m_to_store:
+            m_to_store.frames.append(data)
 
 
-def main():
+def main(m = manager(), m_to_store=None):
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 2
@@ -26,19 +30,20 @@ def main():
 
     # for i in range(p.get_device_count()):
     #     print(p.get_device_info_by_index(i))
-
+    # sys.exit()
     # open pyaudio input stream to start recording
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
                     rate=RATE,
                     input=True,
                     frames_per_buffer=CHUNK)
-
+    # print(p.get_sample_size(FORMAT))
+    # sys.exit()
     print('Recording...')
 
-    m = manager()
+    # m = manager()
     # frames = []
-    t = threading.Thread(target=recordData, args=(m, CHUNK, stream, ))
+    t = threading.Thread(target=recordData, args=(m, m_to_store, CHUNK, stream, ))
     # keep_going = True
 
     # start capturing speaker output into 'frames'
@@ -54,13 +59,15 @@ def main():
     stream.close()
     p.terminate()
     print('Stopped recording.')
+    save_wav(WAVE_OUTPUT_FILENAME, CHANNELS, RATE, p.get_sample_size(FORMAT), m_to_store.frames)
 
+def save_wav(filename, channels, rate, sample_size, frames):
     # save the captured audio into a wav file
-    wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
-    wf.writeframes(b''.join(m.frames))
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(channels)
+    wf.setsampwidth(sample_size)
+    wf.setframerate(rate)
+    wf.writeframes(b''.join(frames))
     wf.close()
     print('Saved wav recording.')
 
