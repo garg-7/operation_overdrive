@@ -32,13 +32,23 @@ mycursor = mydb.cursor()
 
 # mycursor.execute("Create table backupData(file varchar(200), owner varchar(200))")
 
-mycursor.execute("Show tables")
+# mycursor.execute("Show tables")
+# for tb in mycursor :
+    # print(tb)
 
-for tb in mycursor :
-    print(tb)
+dataPush = "Insert into backupdata(file, owner) values (%s, %s)"
+
+mycursor.executemany(dataPush,files)
+mydb.commit()
+
+mycursor.execute("Select * from backupdata")
+myFiles = mycursor.fetchall()
+
+for row in myFiles:
+    print (row)
 
 
-# print(mydb)
+print(mydb)
 
 # import socket    
 # hostname = socket.gethostname()    
