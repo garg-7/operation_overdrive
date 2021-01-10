@@ -36,7 +36,7 @@ from _thread import start_new_thread
     
 
 currentUserName = getpass.getuser()
-print(currentUserName)
+# print(currentUserName)
 userData=[]
 
 files=os.listdir('backup')
@@ -103,7 +103,7 @@ mydb.commit()
 
 
     
-#delete table contencts  ::
+#delete table contents  ::
 
 # deleteOperation = "DELETE FROM backupdata"
 
