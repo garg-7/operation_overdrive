@@ -4,6 +4,36 @@
 import mysql.connector
 import os
 import getpass
+import socket
+from _thread import start_new_thread
+
+
+# def manageConnections ():
+#     while True:  
+#         clientsocket, address = s.accept()
+#         clients.append((clientsocket, address))
+#         start_new_thread(handleConnection, (clientsocket , address))
+#         print(f"Connected with {address}")
+
+
+# def handleConnection(currentClient,address) :
+#     passwordCheck =  currentClient.recv(100).decode()
+#     if(passwordCheck == "letmepass"):
+#         print(f"Password authentication successful with {address}")
+#         currentClient.send(str("Correct").encode())
+#     else : 
+#         #server to be closed 
+#         print(f"Password authentication unsuccessful with {address}")
+#         currentClient.send(str("Wrong").encode())
+        
+#     purposeCheck =  currentClient.recv(100).decode()
+    
+#     if(purposeCheck == 'Y'):
+#         print(f"File Transfer Requested by address : {address}")
+#     else :
+#         #do something
+#         print()        
+    
 
 currentUserName = getpass.getuser()
 print(currentUserName)
@@ -17,6 +47,17 @@ for file in (files):
     
 files = tuple(zip(files, userData)) 
 # print(files)
+
+
+
+# s = socket.socket()
+# port=9077
+# s.bind(('127.0.0.1',port))
+# s.listen() 
+
+# clients = []
+# manageConnections()
+
 
 mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
 mycursor = mydb.cursor()

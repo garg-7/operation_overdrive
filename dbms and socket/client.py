@@ -1,9 +1,9 @@
-#pip install mysql-connector-python
-# https://dev.mysql.com/downloads/installer/
-
 import mysql.connector
 import os
 import getpass
+import socket
+
+
 
 currentUserName = getpass.getuser()
 print(currentUserName)
@@ -17,6 +17,32 @@ for file in (files):
     
 files = tuple(zip(files, userData)) 
 # print(files)
+
+
+# s = socket.socket()
+# host = input("Please enter the hostname of the server : ")
+# port = 9077
+# s.connect((host, port))
+
+# print("Enter the password to authenticate the connection ! ")
+# passwordCheck = input()
+
+# s.send(passwordCheck.encode())
+# passwordVerified = s.recv(100).decode()
+
+# if(passwordVerified == "Correct") : 
+#     print("Password authentication successful")
+# else : 
+#     print("Password authentication unsuccessful")
+#     print("The connection will be aborted")
+#     exit()
+    
+# print("Enter Y if you want to receive a file or N if you want to participate in the file transfers")
+# purpose = input()
+# s.send(purpose.encode())
+
+
+
 
 mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
 mycursor = mydb.cursor()
