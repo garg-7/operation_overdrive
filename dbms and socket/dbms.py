@@ -1,4 +1,4 @@
-#pip install mysql-connector-python
+# pip install mysql-connector-python
 # https://dev.mysql.com/downloads/installer/
 
 import mysql.connector
@@ -8,22 +8,25 @@ import socket
 from _thread import start_new_thread
 
 def initiateSocketConnection():
+    host = socket.gethostname()
+    print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
     s = socket.socket()
-    port=9077
-    s.bind(('127.0.0.1',port))
-    s.listen() 
+    port=9000
+    s.bind((host,port))
+    s.listen()
     manageConnections(s)
 
 def manageConnections (s):
-    clients = []
+    currentPortNumber = 9001
     while True:  
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
-        start_new_thread(handleConnection, (clientsocket , address))
-        print(f"Connected with {address}")
+        start_new_thread(handleConnection, (clientsocket , address,currentPortNumber))
+        currentPortNumber = currentPortNumber + 1 
+        print(f"Connected with {address}") 
 
 
-def handleConnection(currentClient,address) :
+def handleConnection(currentClient,address,currentPortNumber) :
     passwordCheck =  currentClient.recv(100).decode()
     if(passwordCheck == "letmepass"):
         print(f"Password authentication successful with {address}")
@@ -32,6 +35,10 @@ def handleConnection(currentClient,address) :
         #server to be closed 
         print(f"Password authentication unsuccessful with {address}")
         currentClient.send(str("Wrong").encode())
+        
+    # strPortNum = str(currentPortNumber)
+    currentClient.send(str(currentPortNumber).encode())
+    currentPortNumber = currentPortNumber + 1
         
     purposeCheck =  currentClient.recv(100).decode()
     
@@ -42,15 +49,17 @@ def handleConnection(currentClient,address) :
         print()        
     
 def main():
-    currentUserName = getpass.getuser()
+    # currentUserName = getpass.getuser()
     # print(currentUserName)
+
+    currentHostName = socket.gethostname()
     
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
+    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    # mycursor = mydb.cursor()
     
     initiateSocketConnection()
     
-    # files = getFileInfo(currentUserName)
+    # files = getFileInfo(currentHostName,portNumber)
     
     # databaseCreation(mycursor)
     
@@ -80,15 +89,17 @@ def getCredentials():
     # Your Computer Name is:LAPTOP-RBAGRA85
     # Your Computer IP Address is:192.168.56.1
 
-def getFileInfo(currentUserName):
+def getFileInfo(currentHostName,portNum):
     userData=[]
+    portData =[]
     files=os.listdir('backup')
     # print(files)
 
     for file in (files):
-        userData.append(currentUserName)
+        userData.append(currentHostName)
+        portData.append(portNum)
         
-    files = tuple(zip(files, userData))
+    files = tuple(zip(files, userData,portData))
     return files 
 
 #new database creation ::
@@ -136,6 +147,8 @@ def printTableData(mycursor):
     
 def printDatabaseName(mydb) :
     print(mydb)
+    
+clients = []
 
 if __name__ == '__main__' :
     main()

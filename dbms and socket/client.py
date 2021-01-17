@@ -2,12 +2,21 @@ import mysql.connector
 import os
 import getpass
 import socket
+from _thread import start_new_thread
 
+def serverConnection(portNum):
+    host = socket.gethostname()
+    print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
+    s = socket.socket()
+    port=portNum
+    s.bind((host,port))
+    s.listen()
+    #something
 
 def initiateSocketConnection():
     s = socket.socket()
     host = input("Please enter the hostname of the server : ")
-    port = 9077
+    port = 9000
     s.connect((host, port))
     handleConnection(s)
 
@@ -21,6 +30,11 @@ def handleConnection(s):
 
     if(passwordVerified == "Correct") : 
         print("Password authentication successful")
+        serverPortNumber = s.recv(100).decode()
+        serverPortNumber = int(serverPortNumber)
+        
+        start_new_thread(serverConnection, (serverPortNumber))
+        
     else : 
         print("Password authentication unsuccessful")
         print("The connection will be aborted")
@@ -32,13 +46,17 @@ def handleConnection(s):
 
 
 def main():
-    currentUserName = getpass.getuser()
+    # currentUserName = getpass.getuser()
     # print(currentUserName)
     
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
+    currentHostName = socket.gethostname()
     
-    # files = getFileInfo(currentUserName)
+    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    # mycursor = mydb.cursor()
+    
+    initiateSocketConnection()
+    
+    # files = getFileInfo(currentHostName,portNumber)
     
     # databaseCreation(mycursor)
     
@@ -57,15 +75,17 @@ def getCredentials():
     print("Your Computer Name is:" + hostname)    
     print("Your Computer IP Address is:" + IPAddr)
 
-def getFileInfo(currentUserName):
+def getFileInfo(currentHostName,portNum):
     userData=[]
+    portData =[]
     files=os.listdir('backup')
     # print(files)
 
     for file in (files):
-        userData.append(currentUserName)
+        userData.append(currentHostName)
+        portData.append(portNum)
         
-    files = tuple(zip(files, userData))
+    files = tuple(zip(files, userData,portData))
     return files 
 
 #print all tables that exist ::
