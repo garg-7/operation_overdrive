@@ -1,8 +1,7 @@
 import socket
-import read_music
 from threading import Thread
 import time
-
+import multi
 
 def main():
     host = '127.0.0.1'
@@ -19,36 +18,32 @@ def main():
         conn_socket, client = s.accept()
         print(f'Connected with {client}')
         print(f'Sending stream...')
-        m = read_music.manager()
-        m_to_store = read_music.manager()
-        speaker = read_music.get_speaker()
-        read_music.set_speaker_loopback(speaker)
-        
-        # start recording 
-        t = Thread(target=read_music.main, args=(m,m_to_store))
+
+        # for mic stream
+        m = multi.manager()
+        m_to_store = multi.manager()
+
+        # for speaker loopback
+        m1 = multi.manager()
+        m1_to_store = multi.manager()
+
+        # start recording
+        t = Thread(target=multi.main, args=(m,m_to_store, m1, m1_to_store))
         t.start()
-        
+
         # # give 3 seconds for the buffer to fill up
         # time.sleep(0.1)
 
-        print('Starting sending audio stream...')
-        sent = 0
-        failed = 0
+        print('Starting to sending audio stream...')
         while m.keep_going:
             try:
-                data_to_be_sent = m.frames[0]
+                data_to_be_sent = (m.frames[0], m1.frames[1])
                 conn_socket.send(data_to_be_sent)
                 m.frames.pop(0)
-                sent+=1
-                # if sent%2==0:
-                #     print(sent)
+                m1.frames.pop(0)
             except IndexError:
-                failed+=1
                 pass
-        
-        # print('I exited')
-        t.join()
-        read_music.reset_default_mic()
+
 if __name__ == '__main__':
     main()
 
