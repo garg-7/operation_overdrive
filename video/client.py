@@ -19,3 +19,5 @@ while True:
 
     # Then data
     clientsocket.sendall(message_size + data)
+cap.release()
+cv2.destroyAllWindows()
