@@ -24,6 +24,11 @@ def manageConnections (s):
         start_new_thread(handleConnection, (clientsocket , address,currentPortNumber))
         currentPortNumber = currentPortNumber + 1 
         print(f"Connected with {address}") 
+        
+        print("Updating database")
+        for client in clients :
+            clients[0].send(str("Update Database").encode())
+        print("Database updated successfully")
 
 
 def handleConnection(currentClient,address,currentPortNumber) :
@@ -31,22 +36,22 @@ def handleConnection(currentClient,address,currentPortNumber) :
     if(passwordCheck == "letmepass"):
         print(f"Password authentication successful with {address}")
         currentClient.send(str("Correct").encode())
+        # strPortNum = str(currentPortNumber)
+        currentClient.send(str(currentPortNumber).encode())
+            
+        purposeCheck =  currentClient.recv(100).decode()
+        
+        if(purposeCheck == 'Y'):
+            print(f"File Transfer Requested by address : {address}")
+        else :
+            #do something
+            print(f"{address} will participate in file transfer")
+    
     else : 
         #server to be closed 
         print(f"Password authentication unsuccessful with {address}")
         currentClient.send(str("Wrong").encode())
         
-    # strPortNum = str(currentPortNumber)
-    currentClient.send(str(currentPortNumber).encode())
-    currentPortNumber = currentPortNumber + 1
-        
-    purposeCheck =  currentClient.recv(100).decode()
-    
-    if(purposeCheck == 'Y'):
-        print(f"File Transfer Requested by address : {address}")
-    else :
-        #do something
-        print()        
     
 def main():
     # currentUserName = getpass.getuser()

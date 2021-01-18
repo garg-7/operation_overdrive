@@ -12,6 +12,24 @@ def serverConnection(portNum):
     s.bind((host,port))
     s.listen()
     #something
+    
+    while True:  
+        clientsocket, address = s.accept()
+        start_new_thread(handleServerConnection, (clientsocket , address))
+        print(f"Connected with {address}") 
+        
+def handleServerConnection(clientsocket, address):
+    fileRequested = clientsocket.recv(100).decode()
+    if os.path.isfile(os.path.join('backup', fileRequested)) :
+        filename = os.path.join('backup', fileRequested)
+        f = open(filename, 'wb')
+        file_data = clientsocket.recv(110241024)
+        f.write(file_data)
+        f.close()
+        print('File transfer completed')
+    else :
+        print()
+        #file not present
 
 def initiateSocketConnection():
     s = socket.socket()
@@ -26,20 +44,29 @@ def handleConnection(s):
     passwordCheck = input()
 
     s.send(passwordCheck.encode())
-    passwordVerified = s.recv(100).decode()
-
-    if(passwordVerified == "Correct") : 
-        print("Password authentication successful")
-        serverPortNumber = s.recv(100).decode()
-        serverPortNumber = int(serverPortNumber)
+    
+    while True :
+        passwordVerified = s.recv(100).decode()
+        if(passwordVerified == "Correct") : 
+            print("Password authentication successful")
+            serverPortNumber = s.recv(100).decode()
+            serverPortNumber = int(serverPortNumber)
+            
+            start_new_thread(serverConnection, (serverPortNumber))
+            
+        elif (passwordVerified == "Wrong") : 
+            print("Password authentication unsuccessful")
+            print("The connection will be aborted")
+            exit()
         
-        start_new_thread(serverConnection, (serverPortNumber))
-        
-    else : 
-        print("Password authentication unsuccessful")
-        print("The connection will be aborted")
-        exit()
-        
+        elif (passwordVerified == "Update Database") : 
+            print()
+            #do something
+            
+        else : 
+            print()
+            #do something
+    
     print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
     purpose = input()
     s.send(purpose.encode())
