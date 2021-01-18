@@ -24,9 +24,9 @@ def serverConnection(portNum):
         
 def handleServerConnection(clientsocket, address):
     fileRequested = clientsocket.recv(100).decode()
-    if os.path.isfile(os.path.join('backup', fileRequested)) :
-        filename = os.path.join('backup', fileRequested)
-        f = open(os.path.join('backup', fileRequested) , 'rb')
+    if os.path.isfile(os.path.join('backup2', fileRequested)) :
+        filename = os.path.join('backup2', fileRequested)
+        f = open(os.path.join('backup2', fileRequested) , 'rb')
         file_data = f.read(110241024)
         clientsocket.send(file_data)
         print('File transfer completed')
@@ -64,12 +64,12 @@ def receiveFiles(s,mycursor):
         sGetFiles.send(fileName.encode())
         
         print("The requested file is getting transferred !! ")
-        filename = os.path.join('backup', fileName)
+        filename = os.path.join('backup2', fileName)
         f = open(filename, 'wb')
         file_data = sGetFiles.recv(110241024)
         f.write(file_data)
         f.close()
-        print("File  transferred and saved in the backup folder with the same file name !")
+        print("File  transferred and saved in the backup2 folder with the same file name !")
         
     else :
         print("Kindly wait now ...")
@@ -143,7 +143,7 @@ def getFileInfo(portNum):
     currentHostName = socket.gethostname()
     userData=[]
     portData =[]
-    files=os.listdir('backup')
+    files=os.listdir('backup2')
     # print(files)
 
     for file in (files):

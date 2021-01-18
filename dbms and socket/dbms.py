@@ -7,46 +7,51 @@ import getpass
 import socket
 from _thread import start_new_thread
 
-def initiateSocketConnection():
+def initiateSocketConnection(mydb,mycursor):
     host = socket.gethostname()
     print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
     s = socket.socket()
     port=9000
     s.bind((host,port))
     s.listen()
-    manageConnections(s)
+    manageConnections(s,mydb,mycursor)
 
-def manageConnections (s):
+def manageConnections (s,mydb,mycursor):
     currentPortNumber = 9001
     while True:  
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
-        start_new_thread(handleConnection, (clientsocket , address,currentPortNumber))
+        start_new_thread(handleConnection, (clientsocket , address,currentPortNumber,mydb,mycursor))
         currentPortNumber = currentPortNumber + 1  
         print(f"Connected with {address}")
 
 
-def handleConnection(currentClient,address,currentPortNumber) :
+def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
     passwordCheck =  currentClient.recv(100).decode()
     if(passwordCheck == "letmepass"):
         print(f"Password authentication successful with {address}")
         currentClient.send(str("Correct").encode())
-        # strPortNum = str(currentPortNumber)
+        intermediateStep =   currentClient.recv(100).decode()
         currentClient.send(str(currentPortNumber).encode())
-        intermediateStep =  currentClient.recv(100).decode()
+        intermediateStep =   currentClient.recv(100).decode()
         
         print("Updating database")
+        deteleTableData(mycursor,mydb)
+        files=getFileInfo(str("9000"))
+        createTableEntry(mycursor,mydb,files)
         for client in clients :
-            client[0].send(("Update Database").encode())
+            client[0].send(str("Update Database").encode())
+            intermediateStep =   client[0].recv(100).decode()
+            
         print("Database updated successfully")
             
-        # purposeCheck =  currentClient.recv(100).decode()
+        purposeCheck =  currentClient.recv(100).decode()
         
-        # if(purposeCheck == 'Y'):
-        #     print(f"File Transfer Requested by address : {address}")
-        # else :
-        #     #do something
-        #     print(f"{address} will participate in file transfer")
+        if(purposeCheck == 'Y'):
+            print(f"File Transfer Requested by address : {address}")
+        else :
+            #do something
+            print(f"{address} will participate in file transfer")
     
     else : 
         #server to be closed 
@@ -60,10 +65,10 @@ def main():
 
     currentHostName = socket.gethostname()
     
-    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    # mycursor = mydb.cursor()
+    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    mycursor = mydb.cursor()
     
-    initiateSocketConnection()
+    initiateSocketConnection(mydb,mycursor)
     
     # files = getFileInfo(currentHostName,portNumber)
     
@@ -95,11 +100,11 @@ def getCredentials():
     # Your Computer Name is:LAPTOP-RBAGRA85
     # Your Computer IP Address is:192.168.56.1
 
-def getFileInfo(currentHostName,portNum):
+def getFileInfo(portNum):
     userData=[]
     portData =[]
     files=os.listdir('backup')
-    # print(files)
+    currentHostName = socket.gethostname()
 
     for file in (files):
         userData.append(currentHostName)
@@ -137,7 +142,7 @@ def createTableEntry(mycursor,mydb,files):
     dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
     for file in files :
         if file not in alreadyInputFiles :
-            mycursor.executemany(dataPush,files)
+            mycursor.execute(dataPush,file)
             mydb.commit()
 
 

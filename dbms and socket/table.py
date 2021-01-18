@@ -28,14 +28,12 @@ for file in (files):
     
 # files = tuple(zip(files, userData,portData))
 
-mycursor.execute("Select * from filebackupdata")
-myFiles = mycursor.fetchall()
 
-files =[]
-files.append(tuple(zip(str("file1"),str("owner1"),str("port1"))))
-files.append(tuple(zip(str("file2"),str("owner2"),str("port2"))))
-files.append(tuple(zip(str("file3"),str("owner3"),str("port3"))))
-files.append(tuple(zip(str("file4"),str("owner4"),str("port4"))))
+# files =[]
+# files.append(tuple(zip(str("file1"),str("owner1"),str("port1"))))
+# files.append(tuple(zip(str("file2"),str("owner2"),str("port2"))))
+# files.append(tuple(zip(str("file3"),str("owner3"),str("port3"))))
+# files.append(tuple(zip(str("file4"),str("owner4"),str("port4"))))
 
 # dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
 # for file in files : 
@@ -49,6 +47,8 @@ deleteOperation = "DELETE FROM filebackupdata"
 mycursor.execute(deleteOperation)
 mydb.commit()
 
+mycursor.execute("Select * from filebackupdata")
+myFiles = mycursor.fetchall()
 
 for row in myFiles:
     print (row)
