@@ -62,7 +62,7 @@ def main():
                     rate=RATE,
                     output=True,
                     output_device_index=speaker_id)
-    
+
     mic_stream = p.open(format=FORMAT,
                     channels=CHANNELS,
                     rate=RATE,
@@ -78,13 +78,13 @@ def main():
     s1.connect((shost, sport))
     mic_data_thread = Thread(target=receiving_data, args=(s1, f1))
     mic_data_thread.start()
-    
+
     speaker_data_thread.join()
     mic_data_thread.join()
     print('Finished receiving audio stream.')
     # print('Saving recording as wav file.')
-    multi.save_wav('speaker.wav', CHANNELS, RATE, 2, f.frames)
-    multi.save_wav('mic.wav', CHANNELS, RATE, 2, f1.frames)
+    multi.save_wav('speaker.wav', CHANNELS, RATE, 2, f.frames_save)
+    multi.save_wav('mic.wav', CHANNELS, RATE, 2, f1.frames_save)
 
 if __name__ == '__main__':
     main()

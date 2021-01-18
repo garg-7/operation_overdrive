@@ -8,8 +8,8 @@ import sys
 def share_audio(conn_socket, m):
     while m.keep_going:
         try:
-            data_to_be_sent = m.frames[0] 
-            # print(sys.getsizeof(data_to_be_sent))
+            data_to_be_sent = m.frames[0]
+            # print(max(data_to_be_sent))
             conn_socket.send(data_to_be_sent)
             m.frames.pop(0)
         except IndexError:
@@ -27,7 +27,7 @@ def main():
     s.listen()
     print('Listening for connections...')
 
-    # for speaker loopback 
+    # for speaker loopback
     m = multi.manager()
     m_to_store = multi.manager()
 
