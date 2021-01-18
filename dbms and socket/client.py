@@ -4,6 +4,10 @@ import getpass
 import socket
 from _thread import start_new_thread
 
+class globalVariables():
+    def __init__ (self, portNum) :
+        self.currentPortNumber = portNum
+
 def serverConnection(portNum):
     host = socket.gethostname()
     print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
@@ -31,15 +35,31 @@ def handleServerConnection(clientsocket, address):
         print()
         #file not present
 
-def initiateSocketConnection():
+def initiateSocketConnection(mycursor,mydb):
     s = socket.socket()
     host = input("Please enter the hostname of the server : ")
     port = 9000
     s.connect((host, port))
-    handleConnection(s)
+    
+    portObject = globalVariables(0)
+    
+    handleConnection(mycursor,mydb,s,portObject)
 
-
-def handleConnection(s):
+def receiveFiles(s,mycursor):
+    print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
+    purpose = input()
+    # s.send(purpose.encode())
+    
+    if purpose == "Y" :
+        print("Following is the file info of all the data available with associated host and port number")
+        printTableData(mycursor)
+        
+        
+    else :
+        print("Kindly wait now ...")
+        print("If you want to request for a file, connect again.")
+    
+def handleConnection(mycursor,mydb,s,portObject):
     print("Enter the password to authenticate the connection ! ")
     passwordCheck = input()
 
@@ -47,12 +67,11 @@ def handleConnection(s):
     
     while True :
         passwordVerified = s.recv(100).decode()
+        print (f"Received Input ::        {passwordVerified}")
         if(passwordVerified == "Correct") : 
             print("Password authentication successful")
-            serverPortNumber = s.recv(100).decode()
-            serverPortNumber = int(serverPortNumber)
+            start_new_thread(receiveFiles, (s,mycursor))
             
-            start_new_thread(serverConnection, (serverPortNumber))
             
         elif (passwordVerified == "Wrong") : 
             print("Password authentication unsuccessful")
@@ -60,16 +79,20 @@ def handleConnection(s):
             exit()
         
         elif (passwordVerified == "Update Database") : 
-            print()
-            #do something
+            # print()
+            files=getFileInfo(portObject.currentPortNumber)
+            createTableEntry(mycursor,mydb,files)
             
         else : 
             print()
-            #do something
+            serverPortNumber = s.recv(100).decode()
+            serverPortNumber = int(serverPortNumber)
+            portObject.currentPortNumber = serverPortNumber
+            s.send(passwordCheck.encode())
+            
+            start_new_thread(serverConnection, (serverPortNumber))
     
-    print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
-    purpose = input()
-    s.send(purpose.encode())
+    
 
 
 def main():
@@ -78,10 +101,11 @@ def main():
     
     currentHostName = socket.gethostname()
     
-    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    # mycursor = mydb.cursor()
+    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    mycursor = mydb.cursor()
     
-    initiateSocketConnection()
+    
+    initiateSocketConnection(mycursor,mydb)
     
     # files = getFileInfo(currentHostName,portNumber)
     
@@ -110,7 +134,7 @@ def getFileInfo(currentHostName,portNum):
 
     for file in (files):
         userData.append(currentHostName)
-        portData.append(portNum)
+        portData.append(str(portNum))
         
     files = tuple(zip(files, userData,portData))
     return files 
@@ -123,21 +147,26 @@ def printTables(mycursor):
 
 #create entry in table ::
 def createTableEntry(mycursor,mydb,files):
-    dataPush = "Insert into backupdata(file, owner) values (%s, %s)"
-    mycursor.executemany(dataPush,files)
-    mydb.commit()
+    mycursor.execute("Select * from filebackupdata")
+    alreadyInputFiles = mycursor.fetchall()
+    
+    dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
+    for file in files :
+        if file not in alreadyInputFiles :
+            mycursor.executemany(dataPush,files)
+            mydb.commit()
 
 
 #delete table contents  ::
 def deteleTableData(mycursor,mydb) : 
-    deleteOperation = "DELETE FROM backupdata"
+    deleteOperation = "DELETE FROM filebackupdata"
     mycursor.execute(deleteOperation)
     mydb.commit()
  
 
 #print table contents ::
 def printTableData(mycursor):
-    mycursor.execute("Select * from backupdata")
+    mycursor.execute("Select * from filebackupdata")
     myFiles = mycursor.fetchall()
 
     for row in myFiles:
@@ -145,6 +174,7 @@ def printTableData(mycursor):
     
 def printDatabaseName(mydb) :
     print(mydb)
+
 
 if __name__ == '__main__' :
     main()

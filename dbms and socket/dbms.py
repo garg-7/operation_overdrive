@@ -22,13 +22,8 @@ def manageConnections (s):
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
         start_new_thread(handleConnection, (clientsocket , address,currentPortNumber))
-        currentPortNumber = currentPortNumber + 1 
-        print(f"Connected with {address}") 
-        
-        print("Updating database")
-        for client in clients :
-            clients[0].send(str("Update Database").encode())
-        print("Database updated successfully")
+        currentPortNumber = currentPortNumber + 1  
+        print(f"Connected with {address}")
 
 
 def handleConnection(currentClient,address,currentPortNumber) :
@@ -38,14 +33,20 @@ def handleConnection(currentClient,address,currentPortNumber) :
         currentClient.send(str("Correct").encode())
         # strPortNum = str(currentPortNumber)
         currentClient.send(str(currentPortNumber).encode())
-            
-        purposeCheck =  currentClient.recv(100).decode()
+        intermediateStep =  currentClient.recv(100).decode()
         
-        if(purposeCheck == 'Y'):
-            print(f"File Transfer Requested by address : {address}")
-        else :
-            #do something
-            print(f"{address} will participate in file transfer")
+        print("Updating database")
+        for client in clients :
+            client[0].send(("Update Database").encode())
+        print("Database updated successfully")
+            
+        # purposeCheck =  currentClient.recv(100).decode()
+        
+        # if(purposeCheck == 'Y'):
+        #     print(f"File Transfer Requested by address : {address}")
+        # else :
+        #     #do something
+        #     print(f"{address} will participate in file transfer")
     
     else : 
         #server to be closed 
@@ -119,7 +120,7 @@ def printDatabases(mycursor):
 
 #Create a new table  ::
 def createTable(mycursor):
-    mycursor.execute("Create table backupData(file varchar(200), owner varchar(200))")
+    mycursor.execute("Create table filebackupData(file varchar(200), owner varchar(200), port varchar(200))")
 
 
 #print all tables that exist ::
@@ -130,21 +131,26 @@ def printTables(mycursor):
 
 #create entry in table ::
 def createTableEntry(mycursor,mydb,files):
-    dataPush = "Insert into backupdata(file, owner) values (%s, %s)"
-    mycursor.executemany(dataPush,files)
-    mydb.commit()
+    mycursor.execute("Select * from filebackupdata")
+    alreadyInputFiles = mycursor.fetchall()
+    
+    dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
+    for file in files :
+        if file not in alreadyInputFiles :
+            mycursor.executemany(dataPush,files)
+            mydb.commit()
 
 
 #delete table contents  ::
 def deteleTableData(mycursor,mydb) : 
-    deleteOperation = "DELETE FROM backupdata"
+    deleteOperation = "DELETE FROM filebackupdata"
     mycursor.execute(deleteOperation)
     mydb.commit()
  
 
 #print table contents ::
 def printTableData(mycursor):
-    mycursor.execute("Select * from backupdata")
+    mycursor.execute("Select * from filebackupdata")
     myFiles = mycursor.fetchall()
 
     for row in myFiles:
