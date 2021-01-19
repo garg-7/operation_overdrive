@@ -23,16 +23,17 @@ def serverConnection(portNum):
         print(f"Connected with {address}") 
         
 def handleServerConnection(clientsocket, address):
-    fileRequested = clientsocket.recv(100).decode()
-    if os.path.isfile(os.path.join('backup2', fileRequested)) :
-        filename = os.path.join('backup2', fileRequested)
-        f = open(os.path.join('backup2', fileRequested) , 'rb')
-        file_data = f.read(110241024)
-        clientsocket.send(file_data)
-        print('File transfer completed')
-    else :
-        print()
-        #file not present
+    while True:
+        fileRequested = clientsocket.recv(100).decode()
+        if os.path.isfile(os.path.join('backup2', fileRequested)) :
+            filename = os.path.join('backup2', fileRequested)
+            f = open(os.path.join('backup2', fileRequested) , 'rb')
+            file_data = f.read(110241024)
+            clientsocket.send(file_data)
+            print('File transfer completed')
+        else :
+            print("This file is not present at this endpoint, kindly try again")
+            #file not present
 
 def initiateSocketConnection(mycursor,mydb):
     s = socket.socket()
@@ -44,6 +45,18 @@ def initiateSocketConnection(mycursor,mydb):
     
     handleConnection(mycursor,mydb,s,portObject)
 
+def receiveFilesFromServer(s,fileName):
+    s.send(fileName.encode())
+            
+    print("The requested file is getting transferred !! ")
+    filename = os.path.join('backup2', fileName)
+    f = open(filename, 'wb')
+    file_data = s.recv(110241024)
+    f.write(file_data)
+    f.close()
+    print("File  transferred and saved in the backup folder with the same file name !")
+    
+
 def receiveFiles(s,mycursor):
     print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
     purpose = input()
@@ -53,23 +66,27 @@ def receiveFiles(s,mycursor):
         print("Following is the file info of all the data available with associated host and port number")
         printTableData(mycursor)
         
-        fileName = input("Enter the filename that you want alongwith the extension ::  ")
-        hostName = input("Enter the hostname where the desired file is located ::  ")
-        portName = input("Enter the port number where socket connection is to be established ::  ")
-        portName = int(portName)
-        
-        sGetFiles = socket.socket()
-        sGetFiles.connect((hostName, portName))
+        while True :
+            fileName = input("Enter the filename that you want alongwith the extension ::  ")
+            hostName = input("Enter the hostname where the desired file is located ::  ")
+            portName = input("Enter the port number where socket connection is to be established ::  ")
+            portName = int(portName)
+            
+            if portName == 9000 :
+                start_new_thread(receiveFilesFromServer, (s,fileName))
+            
+            sGetFiles = socket.socket()
+            sGetFiles.connect((hostName, portName))
 
-        sGetFiles.send(fileName.encode())
-        
-        print("The requested file is getting transferred !! ")
-        filename = os.path.join('backup2', fileName)
-        f = open(filename, 'wb')
-        file_data = sGetFiles.recv(110241024)
-        f.write(file_data)
-        f.close()
-        print("File  transferred and saved in the backup2 folder with the same file name !")
+            sGetFiles.send(fileName.encode())
+            
+            print("The requested file is getting transferred !! ")
+            filename = os.path.join('backup2', fileName)
+            f = open(filename, 'wb')
+            file_data = sGetFiles.recv(110241024)
+            f.write(file_data)
+            f.close()
+            print("File  transferred and saved in the backup folder with the same file name !")
         
     else :
         print("Kindly wait now ...")

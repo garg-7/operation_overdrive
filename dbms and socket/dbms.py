@@ -40,9 +40,11 @@ def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
         files=getFileInfo(str("9000"))
         createTableEntry(mycursor,mydb,files)
         for client in clients :
-            client[0].send(str("Update Database").encode())
-            intermediateStep =   client[0].recv(100).decode()
-            
+            try :
+                client[0].send(str("Update Database").encode())
+                intermediateStep =   client[0].recv(100).decode()
+            except :
+                continue
         print("Database updated successfully")
             
         purposeCheck =  currentClient.recv(100).decode()
@@ -52,6 +54,19 @@ def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
         else :
             #do something
             print(f"{address} will participate in file transfer")
+            
+        while True : 
+            fileRequested = currentClient.recv(100).decode()
+            if os.path.isfile(os.path.join('backup', fileRequested)) :
+                filename = os.path.join('backup', fileRequested)
+                f = open(os.path.join('backup', fileRequested) , 'rb')
+                file_data = f.read(110241024)
+                currentClient.send(file_data)
+                print('File transfer completed')
+            else :
+                print("This file is not present at this endpoint, kindly try again")
+                #file not present
+            
     
     else : 
         #server to be closed 
