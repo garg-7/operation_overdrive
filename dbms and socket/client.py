@@ -26,73 +26,75 @@ def handleServerConnection(clientsocket, address):
     while True:
         fileRequested = clientsocket.recv(100).decode()
         if os.path.isfile(os.path.join('backup', fileRequested)) :
+            fileAvailability = "Y"
+            clientsocket.send(str(fileAvailability).encode())
             filename = os.path.join('backup', fileRequested)
             f = open(os.path.join('backup', fileRequested) , 'rb')
-            file_data = f.read(110241024)
+            file_data = f.read(9999999999)
             clientsocket.send(file_data)
             print('File transfer completed')
         else :
+            fileAvailability = "N"
+            clientsocket.send(str(fileAvailability).encode())
             print("This file is not present at this endpoint, kindly try again")
             #file not present
 
-def initiateSocketConnection(mycursor,mydb):
-    s = socket.socket()
-    host = input("Please enter the hostname of the server : ")
-    port = 9000
-    s.connect((host, port))
-    
-    portObject = globalVariables(0)
-    
-    handleConnection(mycursor,mydb,s,portObject)
 
 def receiveFilesFromServer(s,fileName):
     s.send(fileName.encode())
-            
-    print("The requested file is getting transferred !! ")
-    filename = os.path.join('backup', fileName)
-    f = open(filename, 'wb')
-    file_data = s.recv(110241024)
-    f.write(file_data)
-    f.close()
-    print("File  transferred and saved in the backup folder with the same file name !")
+    fileAvaibility = s.recv(100).decode()
+    if fileAvaibility == "Y" :
+        print("The requested file is getting transferred !! ")
+        filename = os.path.join('backup', fileName)
+        f = open(filename, 'wb')
+        file_data = s.recv(9999999999)
+        f.write(file_data)
+        f.close()
+        print("File  transferred and saved in the backup folder with the same file name !")
+    print("The file is not available at the requested endpoint")
     
 
-def receiveFiles(s,mycursor):
+def receiveFiles(s):
     print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
     purpose = input()
     s.send(purpose.encode())
     
     if purpose == "Y" :
-        print("Following is the file info of all the data available with associated host and port number")
-        printTableData(mycursor)
         
         while True :
+            print("Following is the file info of all the data available with associated host and port number")
+            printTableData()
+            
             fileName = input("Enter the filename that you want alongwith the extension ::  ")
             hostName = input("Enter the hostname where the desired file is located ::  ")
             portName = input("Enter the port number where socket connection is to be established ::  ")
             portName = int(portName)
             
-            if portName == 9000 :
-                start_new_thread(receiveFilesFromServer, (s,fileName))
+            # if portName == 9000 :
+            #     start_new_thread(receiveFilesFromServer, (s,fileName))
             
             sGetFiles = socket.socket()
             sGetFiles.connect((hostName, portName))
 
             sGetFiles.send(fileName.encode())
+            fileAvaibility = sGetFiles.recv(100).decode()
             
-            print("The requested file is getting transferred !! ")
-            filename = os.path.join('backup', fileName)
-            f = open(filename, 'wb')
-            file_data = sGetFiles.recv(110241024)
-            f.write(file_data)
-            f.close()
-            print("File  transferred and saved in the backup folder with the same file name !")
+            if fileAvaibility == "Y" :
+                print("The requested file is getting transferred !! ")
+                filename = os.path.join('backup', fileName)
+                f = open(filename, 'wb')
+                file_data = sGetFiles.recv(9999999999)
+                f.write(file_data)
+                f.close()
+                print("File  transferred and saved in the backup folder with the same file name !")
+            else :
+                print("The file is not available at the requested endpoint")
         
     else :
         print("Kindly wait now ...")
         print("If you want to request for a file, connect again.")
     
-def handleConnection(mycursor,mydb,s,portObject):
+def handleConnection(s,portObject):
     print("Enter the password to authenticate the connection ! ")
     passwordCheck = input()
 
@@ -106,7 +108,7 @@ def handleConnection(mycursor,mydb,s,portObject):
         print (f"Received input ::             {passwordVerified} ")
         if(passwordVerified == "Correct") : 
             print("Password authentication successful")
-            start_new_thread(receiveFiles, (s,mycursor))
+            start_new_thread(receiveFiles, (s,))
             
         elif (passwordVerified == "Wrong") : 
             print("Password authentication unsuccessful")
@@ -114,9 +116,9 @@ def handleConnection(mycursor,mydb,s,portObject):
             exit()
         
         elif (passwordVerified == "Update Database") : 
-            print("second last")
+            # print("second last")
             files=getFileInfo(portObject.currentPortNumber)
-            createTableEntry(mycursor,mydb,files)
+            createTableEntry(files)
             print("Database successfully updated")
             
         else :
@@ -124,6 +126,15 @@ def handleConnection(mycursor,mydb,s,portObject):
             portObject.currentPortNumber = serverPortNumber
             start_new_thread(serverConnection, (serverPortNumber,))    
 
+def initiateSocketConnection():
+    s = socket.socket()
+    host = input("Please enter the hostname of the server : ")
+    port = 9000
+    s.connect((host, port))
+    
+    portObject = globalVariables(0)
+    
+    handleConnection(s,portObject)
 
 def main():
     # currentUserName = getpass.getuser()
@@ -135,7 +146,7 @@ def main():
     mycursor = mydb.cursor()
     
     
-    initiateSocketConnection(mycursor,mydb)
+    initiateSocketConnection()
     
     # files = getFileInfo(currentHostName,portNumber)
     
@@ -178,13 +189,16 @@ def printTables(mycursor):
         print(tb)
 
 #create entry in table ::
-def createTableEntry(mycursor,mydb,files):
+def createTableEntry(files):
+    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    mycursor = mydb.cursor()
     mycursor.execute("Select * from filebackupdata")
     alreadyInputFiles = mycursor.fetchall()
     
     dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
     for file in files :
         if file not in alreadyInputFiles :
+            # print(f" new entry              :::                    {file}")
             mycursor.execute(dataPush,file)
             mydb.commit()
 
@@ -197,7 +211,9 @@ def deteleTableData(mycursor,mydb) :
  
 
 #print table contents ::
-def printTableData(mycursor):
+def printTableData():
+    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    mycursor = mydb.cursor()
     mycursor.execute("Select * from filebackupdata")
     myFiles = mycursor.fetchall()
 

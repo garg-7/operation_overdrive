@@ -43,6 +43,7 @@ def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
             try :
                 client[0].send(str("Update Database").encode())
                 intermediateStep =   client[0].recv(100).decode()
+                # print("yo")
             except :
                 continue
         print("Database updated successfully")
@@ -55,17 +56,21 @@ def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
             #do something
             print(f"{address} will participate in file transfer")
             
-        while True : 
-            fileRequested = currentClient.recv(100).decode()
-            if os.path.isfile(os.path.join('backup', fileRequested)) :
-                filename = os.path.join('backup', fileRequested)
-                f = open(os.path.join('backup', fileRequested) , 'rb')
-                file_data = f.read(110241024)
-                currentClient.send(file_data)
-                print('File transfer completed')
-            else :
-                print("This file is not present at this endpoint, kindly try again")
-                #file not present
+        # while True : 
+        #     fileRequested = currentClient.recv(100).decode()
+        #     if os.path.isfile(os.path.join('backup', fileRequested)) :
+        #         fileAvailibility = "Y"
+        #         currentClient.send(str(fileAvailibility).encode())
+        #         filename = os.path.join('backup', fileRequested)
+        #         f = open(os.path.join('backup', fileRequested) , 'rb')
+        #         file_data = f.read(110241024)
+        #         currentClient.send(file_data)
+        #         print('File transfer completed')
+        #     else :
+        #         fileAvailibility = "N"
+        #         currentClient.send(str(fileAvailibility).encode())
+        #         print("This file is not present at this endpoint, kindly try again")
+        #         #file not present
             
     
     else : 
