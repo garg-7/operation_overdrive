@@ -4,6 +4,8 @@ import zlib
 import mss
 import tkinter
 import pyautogui
+from _thread import start_new_thread
+from test import screenShareSave
 
 coordinates = {"x1":None, "y1":None, "x2":None, "y2":None}
 
@@ -118,7 +120,12 @@ class server:
         finally:
             server.close()
 
+def saveScreen(input):
+    screenShareSave()
+    
+
 if __name__ == "__main__":
+    start_new_thread(saveScreen, ("screen",))
     rootApp = tkinter.Tk(screenName=None, baseName=None, className='Setup', useTk=1)
     app = ApplicationToSnip(rootApp)
     rootApp.mainloop()
