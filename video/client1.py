@@ -49,23 +49,23 @@ def main(host='127.0.0.1', port=5000):
             pixels = decompress(recvall(sock, size))
 
 
-            # Create the Surface from raw pixels
+            # # Create the Surface from raw pixels
             img = pygame.image.fromstring(pixels, (WIDTH, HEIGHT), 'RGB')
-            frame = pygame.surfarray.array3d(img)
-            #frame.swapaxes(0,1)
-            cv2.imshow("screenshot", frame)
-            out.write(frame)
+            # frame = pygame.surfarray.array3d(img)
+            # #frame.swapaxes(0,1)
+            # cv2.imshow("screenshot", frame)
+            # out.write(frame)
 
-            filename = 'test.jpg'
-            # Using cv2.imwrite() method 
-            # Saving the image 
-            cv2.imwrite(filename, frame)
+            # filename = 'test.jpg'
+            # # Using cv2.imwrite() method 
+            # # Saving the image 
+            # cv2.imwrite(filename, frame)
 
             #cv2.imshow('test',img)
 
             # Display the picture
-            #screen.blit(img, (0, 0))
-            #pygame.display.flip()
+            screen.blit(img, (0, 0))
+            pygame.display.flip()
             clock.tick(60)
     finally:
         sock.close()
