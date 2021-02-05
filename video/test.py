@@ -29,3 +29,6 @@ def screenShareSave():
     # make sure everything is closed when exited
     cv2.destroyAllWindows()
     out.release()
+
+if __name__=='__main__':
+    screenShareSave()

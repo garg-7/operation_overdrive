@@ -46,7 +46,7 @@ def connect_to_server():
     # define the codec
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("client_sceen.avi", fourcc, 20.0, (640, 480))
+    out = cv2.VideoWriter("client_sceen.avi", fourcc, 20.0, (1920, 1080))
 
     ADDR = (HOST, PORT)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,12 +70,12 @@ def connect_to_server():
 
             variable = cv2.imread('loser.png')
 
-            cv2.imshow('loser', variable)
+            # cv2.imshow('loser', variable)
 
             # convert these pixels to a proper numpy array to work with OpenCV
             frame = np.array(variable)
             # convert colors from BGR to RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             # write the frame
             out.write(frame)
 
