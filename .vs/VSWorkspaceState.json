@@ -1,8 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\video"
+    "\\video",
+    "\\video\\SShare"
   ],
-  "SelectedNode": "\\video\\server.py",
+  "SelectedNode": "\\video\\SShare\\output.avi",
   "PreviewInSolutionExplorer": false
 }
