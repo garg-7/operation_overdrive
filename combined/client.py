@@ -50,8 +50,7 @@ def receiving_vid_stream(conn, result, f):
     while f.keep_getting:
         # Retrieve message size
         while len(data) < payload_size:
-            recv_data = conn.recv(4096)
-            data += recv_data
+            data += conn.recv(4096)
 
         packed_msg_size = data[:payload_size]
         data = data[payload_size:]
@@ -77,7 +76,9 @@ def receiving_vid_stream(conn, result, f):
 
         # Display
         cv2.imshow('frame', frame)
-        cv2.waitKey(1)
+        cv2.waitKey(500)
+    cv2.destroyAllWindows()
+
 
 
 def getAll(conn, length):
@@ -99,7 +100,7 @@ def receiving_screen_stream(server, f):
     fake_screen = screen.copy()
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("client_screen.avi", fourcc, 20.0, (1920, 1080))
+    out = cv2.VideoWriter("client_screen.avi", fourcc, 2, (1920, 1080))
 
     while f.keep_getting:
         size_len = int.from_bytes(server.recv(1), byteorder='big')
@@ -131,6 +132,7 @@ def receiving_screen_stream(server, f):
 
         clock.tick(60)
     os.remove('loser.png')
+
 
 def main():
     CHUNK = 1024
@@ -173,7 +175,7 @@ def main():
 
     webcam_result = cv2.VideoWriter('client_webcam.avi',
                          cv2.VideoWriter_fourcc(*'MJPG'),
-                         30, (640, 480))
+                         1.5, (640, 480))
 
    
 
@@ -188,12 +190,12 @@ def main():
     mic_data_thread.start()
 
     s_vid.connect((shost, sport))
-    # video_stream_thread = Thread(target=receiving_vid_stream, args=(s_vid, webcam_result, f))
-    # video_stream_thread.start()
+    video_stream_thread = Thread(target=receiving_vid_stream, args=(s_vid, webcam_result, f))
+    video_stream_thread.start()
 
     sshare_vid.connect((shost, sport))
-    sshare_stream_thread = Thread(target=receiving_screen_stream, args=(sshare_vid, f))
-    sshare_stream_thread.start()
+    # sshare_stream_thread = Thread(target=receiving_screen_stream, args=(sshare_vid, f))
+    # sshare_stream_thread.start()
     
     speaker_data_thread.join()
     mic_data_thread.join()
@@ -203,5 +205,10 @@ def main():
     multi.save_wav('client_speaker.wav', CHANNELS, RATE, 2, f.frames_save)
     multi.save_wav('client_mic.wav', CHANNELS, RATE, 2, f1.frames_save)
     # video_stream_thread.join()
+    file_name = input("Enter filename: ")
+    os.system(f'ffmpeg -i client_webcam.avi -i client_mic.wav -i client_speaker.wav -filter_complex "[1][2]amix=inputs=2[a]" -map 0:v -map "[a]" -c:v copy {file_name}.mp4')
+    # os.remove('client_speaker.wav')
+    # os.remove('client_mic.wav')
+    # os.remove('client_webcam.avi')
 if __name__ == '__main__':
     main()

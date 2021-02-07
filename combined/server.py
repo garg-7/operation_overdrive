@@ -7,32 +7,46 @@ import mss
 import zlib
 import pickle
 import socket
+import os
 import struct
 import numpy as np
 import cv2
-
+from cv2 import cv2
+import pygame
 
 def send_screen(conn, m):
     SCREEN_SIZE = (1920, 1080)
+    WIDTH = 1920
+    HEIGHT = 1080
     # define the codec
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("server_screen.avi", fourcc, 20.0, (SCREEN_SIZE))
+    out = cv2.VideoWriter("server_screen.avi", fourcc, 2, SCREEN_SIZE)
 
     with mss.mss() as mss_instance:
         rect = {'top': 0, 'left': 0,
                 'width': 1920, 'height': 1080}
 
         while m.keep_going:
-
             img = mss_instance.grab(rect)
-            frame = np.array(img)
+            # frame = np.array(img)
             # convert colors from BGR to RGB
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # frame = cv2.cvtColor(img.r, cv2.COLOR_BGR2RGB)
+            # # write the frame
+            # out.write(frame)
+            img1 = pygame.image.fromstring(img.rgb, (WIDTH, HEIGHT), 'RGB')
+            pygame.image.save_extended(img1, "loser1.png")
+
+            variable = cv2.imread('loser1.png')
+            
+            # cv2.imshow('loser', variable)
+
+            # convert these pixels to a proper numpy array to work with OpenCV
+            frame = np.array(variable)
+
             # write the frame
             out.write(frame)
             pixels = zlib.compress(img.rgb, 6)
-
             size = len(pixels)
 
             size_len = (size.bit_length() + 7) // 8
@@ -46,6 +60,7 @@ def send_screen(conn, m):
             except:
                 print(f'Client Disconnected [{conn}]')
                 m.keep_going = False
+        os.remove('loser1.png')
 
 
 def share_audio(conn_socket, m):
@@ -84,7 +99,7 @@ def main():
 
     result = cv2.VideoWriter('server_webcam.avi',
                             cv2.VideoWriter_fourcc(*'MJPG'),
-                            30, (640, 480))
+                            1.5, (640, 480))
 
     # start recording
     t = Thread(target=multi.main, args=(m,m_to_store, m1, m1_to_store))
@@ -104,7 +119,7 @@ def main():
     cam_soc, client = s.accept()
     screen_soc, _ = s.accept()
     print("connected video stream")
-    vid = 'sshare'
+    vid = 'webcam'
     if vid=='webcam':
         cap = cv2.VideoCapture(0)
         while m.keep_going:
@@ -119,6 +134,7 @@ def main():
             # Then data
             cam_soc.sendall(message_size + data)
         cap.release()
+        print('webcam was released')
     else:
         vid_sending_thread = Thread(target=send_screen, args=(screen_soc, m))
         vid_sending_thread.start()
