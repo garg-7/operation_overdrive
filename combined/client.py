@@ -1,53 +1,48 @@
-import multi
-import pickle
-import socket
-from threading import Thread
-import time
-import sys
-import pyaudio
+import os
 import pickle
 import socket
 import struct
-import pygame
+import sys
+from threading import Thread
+import time
 import zlib
-import numpy as np
-import cv2
-import os
-class frame_keeper:
-    def __init__(self):
-        self.frames = []
-        self.frames_save = []
-        self.keep_getting = True
 
-def play_audio(f, f1, speaker_stream, mic_stream):
+from cv2 import cv2
+import numpy as np
+import pyaudio
+import pygame
+
+import util
+
+def play_audio(speaker_manager, mic_manager, speaker_stream, mic_stream):
     last_time = time.time()
     while time.time() - last_time < 5:
         try:
-            data_to_be_played = f.frames[0]
+            data_to_be_played = speaker_manager.frames[0]
             # speaker_stream.write(data_to_be_played)
-            data_to_be_played = f1.frames[0]
+            data_to_be_played = mic_manager.frames[0]
             if max(data_to_be_played)>100:
                 # mic_stream.write(data_to_be_played)
                 pass
-            f.frames.pop(0)
-            f1.frames.pop(0)
+            speaker_manager.frames.pop(0)
+            mic_manager.frames.pop(0)
             last_time = time.time()
         except IndexError:
             pass
 
-def receiving_data(s, f):
+def receiving_audio(speaker_soc, speaker_manager):
     while True:
-        recv_data = s.recv(4129)
-        f.frames.append(recv_data)
-        f.frames_save.append(recv_data)
+        recv_data = speaker_soc.recv(4129)
+        speaker_manager.frames.append(recv_data)
+        speaker_manager.kept_frames.append(recv_data)
         if len(recv_data)==0:
-            f.keep_getting = False
+            speaker_manager.keep_going = False
             break
 
-def receiving_vid_stream(conn, result, f):
+def receiving_webcam_stream(conn, result, speaker_manager):
     data = b''  # CHANGED
     payload_size = struct.calcsize("L")  # CHANGED
-    while f.keep_getting:
+    while speaker_manager.keep_going:
         # Retrieve message size
         while len(data) < payload_size:
             data += conn.recv(4096)
@@ -79,8 +74,6 @@ def receiving_vid_stream(conn, result, f):
         cv2.waitKey(500)
     cv2.destroyAllWindows()
 
-
-
 def getAll(conn, length):
     buffer = b''
     while len(buffer) < length:
@@ -90,7 +83,7 @@ def getAll(conn, length):
         buffer += data
     return buffer
 
-def receiving_screen_stream(server, f):
+def receiving_screen_stream(server, speaker_manager):
     WIDTH=1920
     HEIGHT=1080
     clock = pygame.time.Clock()
@@ -100,9 +93,9 @@ def receiving_screen_stream(server, f):
     fake_screen = screen.copy()
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("client_screen.avi", fourcc, 2, (1920, 1080))
+    out = cv2.VideoWriter("client_screen.avi", fourcc, 8, (1920, 1080))
 
-    while f.keep_getting:
+    while speaker_manager.keep_going:
         size_len = int.from_bytes(server.recv(1), byteorder='big')
 
         size = int.from_bytes(server.recv(size_len), byteorder='big')
@@ -111,11 +104,11 @@ def receiving_screen_stream(server, f):
 
         img = pygame.image.fromstring(pixels, (WIDTH, HEIGHT), 'RGB')
 
-        pygame.image.save_extended(img, "loser.png")
+        pygame.image.save_extended(img, "temp.png")
 
-        variable = cv2.imread('loser.png')
-        
-        # cv2.imshow('loser', variable)
+        variable = cv2.imread('temp.png')
+
+        # cv2.imshow('temp', variable)
 
         # convert these pixels to a proper numpy array to work with OpenCV
         frame = np.array(variable)
@@ -131,7 +124,7 @@ def receiving_screen_stream(server, f):
         pygame.display.flip()
 
         clock.tick(60)
-    os.remove('loser.png')
+    os.remove('temp.png')
 
 
 def main():
@@ -142,25 +135,29 @@ def main():
     WAVE_OUTPUT_FILENAME = "gotten/output.wav"
     shost = input("Enter server IP")
     sport = 11111
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s_vid = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sshare_vid = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    f = frame_keeper()
-    f1 = frame_keeper()
+    speaker_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    mic_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    webcam_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    screen_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    speaker_manager = util.manager()
+    mic_manager = util.manager()
+
     p = pyaudio.PyAudio()
-    
+
     sinks = []
+    print("\n********Output Devices***********")
     for i in range(p.get_device_count()):
         device = p.get_device_info_by_index(i)
         if device['maxOutputChannels'] > 0 and ('HDMI' not in device['name']):
             sinks.append(device)
     for i in sinks:
         print(i['index'], i['name'])
-    speaker_id = int(input('Enter index of speaker to use: #'))
+    print("********************************\n")
+    speaker_id = int(input("Speaker Index: #"))
     # print(type(speaker_id))
+
     speaker_stream = p.open(format=FORMAT,
                     channels=CHANNELS,
                     rate=RATE,
@@ -177,36 +174,37 @@ def main():
                          cv2.VideoWriter_fourcc(*'MJPG'),
                          1.5, (640, 480))
 
-   
+    audio_playback_thread = Thread(target=play_audio, args=(speaker_manager, mic_manager, speaker_stream, mic_stream))
+    audio_playback_thread.start()
 
-    t = Thread(target=play_audio, args=(f, f1, speaker_stream, mic_stream))
-    t.start()
-    s.connect((shost, sport))
-    speaker_data_thread = Thread(target=receiving_data, args=(s, f))
-    speaker_data_thread.start()
+    speaker_soc.connect((shost, sport))
+    mic_soc.connect((shost, sport))
+    webcam_soc.connect((shost, sport))
+    screen_soc.connect((shost, sport))
 
-    s1.connect((shost, sport))
-    mic_data_thread = Thread(target=receiving_data, args=(s1, f1))
-    mic_data_thread.start()
+    speaker_receiving_thread = Thread(target=receiving_audio, args=(speaker_soc, speaker_manager))
+    mic_receiving_thread = Thread(target=receiving_audio, args=(mic_soc, mic_manager))
+    webcam_receiving_thread = Thread(target=receiving_webcam_stream, args=(webcam_soc, webcam_result, speaker_manager))
+    screen_receiving_thread = Thread(target=receiving_screen_stream, args=(screen_soc, speaker_manager))
 
-    s_vid.connect((shost, sport))
-    video_stream_thread = Thread(target=receiving_vid_stream, args=(s_vid, webcam_result, f))
-    video_stream_thread.start()
+    # wait for 4 seconds then start receiving
+    # time.sleep(5)
+    speaker_receiving_thread.start()
+    mic_receiving_thread.start()
+    # webcam_receiving_thread.start()
+    screen_receiving_thread.start()
 
-    sshare_vid.connect((shost, sport))
-    # sshare_stream_thread = Thread(target=receiving_screen_stream, args=(sshare_vid, f))
-    # sshare_stream_thread.start()
-    
-    speaker_data_thread.join()
-    mic_data_thread.join()
-    
-    print('Finished receiving audio stream.')
-    # print('Saving recording as wav file.')
-    multi.save_wav('client_speaker.wav', CHANNELS, RATE, 2, f.frames_save)
-    multi.save_wav('client_mic.wav', CHANNELS, RATE, 2, f1.frames_save)
-    # video_stream_thread.join()
-    file_name = input("Enter filename: ")
-    os.system(f'ffmpeg -i client_webcam.avi -i client_mic.wav -i client_speaker.wav -filter_complex "[1][2]amix=inputs=2[a]" -map 0:v -map "[a]" -c:v copy {file_name}.mp4')
+    speaker_receiving_thread.join()
+    mic_receiving_thread.join()
+    # webcam_receiving_thread.join()
+    screen_receiving_thread.join()
+    print("Finished receiving audio stream.")
+    util.save_wav('client_speaker.wav', CHANNELS, RATE, 2, speaker_manager.kept_frames)
+    util.save_wav('client_mic.wav', CHANNELS, RATE, 2, mic_manager.kept_frames)
+
+    # file_name = input("Enter filename: ")
+    os.system(f'ffmpeg -i client_screen.avi -i client_mic.wav -i client_speaker.wav -filter_complex "[1][2]amix=inputs=2[a]" -map 0:v -map "[a]" -c:v copy screen_comb.mp4')
+    os.system(f'ffmpeg -i client_webcam.avi -i client_mic.wav -i client_speaker.wav -filter_complex "[1][2]amix=inputs=2[a]" -map 0:v -map "[a]" -c:v copy webcam_comb.mp4')
     # os.remove('client_speaker.wav')
     # os.remove('client_mic.wav')
     # os.remove('client_webcam.avi')

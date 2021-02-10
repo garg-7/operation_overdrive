@@ -11,13 +11,16 @@ import pyaudio
 class manager:
     def __init__(self):
         self.frames = []
+        self.kept_frames = []
         self.keep_going = True
 
-def recordData(m, m_to_store, CHUNK, stream):
+
+def recordData(m, stream, CHUNK=1024):
     while m.keep_going:
         data = stream.read(CHUNK)
         m.frames.append(data)
-        m_to_store.frames.append(data)
+        m.kept_frames.append(data)
+
 
 def save_wav(filename, channels, rate, sample_size, frames):
     # save the captured audio into a wav file
@@ -29,8 +32,8 @@ def save_wav(filename, channels, rate, sample_size, frames):
     wf.close()
     print(f'Saved {filename}.')
 
-def main(m=manager(), m_to_store=manager(),
-            m1=manager(), m1_to_store=manager()):
+
+def main(speaker_manager=manager(), mic_manager=manager(), webcam_manager=manager(), screen_manager=manager()):
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 2
@@ -50,7 +53,7 @@ def main(m=manager(), m_to_store=manager(),
         if 'Stereo Mix' in dev['name']:
             loopback_speaker = int(dev['index'])
     print("********************************\n")
-    mic = int(input("Mic Stream #"))
+    mic = int(input("Mic Index #"))
 
     # sys.exit()
 
@@ -73,18 +76,21 @@ def main(m=manager(), m_to_store=manager(),
     # sys.exit()
     print('Recording...')
 
-    t = threading.Thread(target=recordData, args=(m, m_to_store, CHUNK, stream_loopback_speaker, ))
-    t1 = threading.Thread(target=recordData, args=(m1, m1_to_store, CHUNK, stream_mic, ))
-    t1.start()
-    t.start()
+    speaker_recording_thread = threading.Thread(target=recordData, args=(speaker_manager, stream_loopback_speaker, ))
+    mic_recording_thread = threading.Thread(target=recordData, args=(mic_manager, stream_mic, ))
+
+    mic_recording_thread.start()
+    speaker_recording_thread.start()
 
     # start capturing speaker output into 'frames'
     while True:
         if input()=='stop':
-            #stop speaker loopback recording
-            m.keep_going = False
-            #stop mic recording
-            m1.keep_going = False
+            #stop recording from all streams
+            speaker_manager.keep_going = False
+            mic_manager.keep_going = False
+            screen_manager.keep_going = False
+            webcam_manager.keep_going = False
+            # add a little delay to prevent dependent threads from crashing
             time.sleep(0.1)
             break
 
@@ -95,8 +101,9 @@ def main(m=manager(), m_to_store=manager(),
     stream_mic.close()
     p.terminate()
     print('Stopped recording.')
-    save_wav(SPEAKER_OUTPUT_FILENAME, CHANNELS, RATE, p.get_sample_size(FORMAT), m_to_store.frames)
-    save_wav(MIC_OUTPUT_FILENAME, CHANNELS, RATE, p.get_sample_size(FORMAT), m1_to_store.frames)
+    save_wav(SPEAKER_OUTPUT_FILENAME, CHANNELS, RATE, p.get_sample_size(FORMAT), speaker_manager.kept_frames)
+    save_wav(MIC_OUTPUT_FILENAME, CHANNELS, RATE, p.get_sample_size(FORMAT), mic_manager.kept_frames)
+
 
 if __name__ == '__main__':
     main()
