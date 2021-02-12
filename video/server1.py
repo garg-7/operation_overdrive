@@ -1,12 +1,22 @@
 import socket
 from threading import Thread
 from zlib import compress
+import cv2
+import numpy as np
+
 
 from mss import mss
 
 
 WIDTH = 1920
 HEIGHT = 1080
+
+# display screen resolution, get it from your OS settings
+SCREEN_SIZE = (1920, 1080)
+# define the codec
+fourcc = cv2.VideoWriter_fourcc(*"XVID")
+# create the video write object
+out = cv2.VideoWriter("output.avi", fourcc, 20.0, (SCREEN_SIZE))
 
 
 def retreive_screenshot(conn):
@@ -17,6 +27,12 @@ def retreive_screenshot(conn):
         while 'recording':
             # Capture the screen
             img = sct.grab(rect)
+            frame = np.array(img)
+            # convert colors from BGR to RGB
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # write the frame
+            out.write(frame)
+
             # Tweak the compression level here (0-9)
             pixels = compress(img.rgb, 6)
 
