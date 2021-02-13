@@ -1,5 +1,11 @@
+import pickle
 import socket
 import sys
+from threading import Thread
+
+class OtherNodes:
+    def __init__(self):
+        self.hosts = set()
 
 def get_master_nodes():
     masters = []
@@ -8,27 +14,34 @@ def get_master_nodes():
         masters.append(line.strip())
     return masters
 
-def contact_master(masters):
+def get_other_nodes(soc, nodes):
+    soc.send('give'.encode())
+    received_node_info = soc.recv(99999999)
+    for i in pickle.loads(received_node_info):
+        nodes.hosts.add(i[0][0])
+
+def contact_masters(masters, nodes):
     # masters are listening on 65121 for new nodes
     for m in masters:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(2)
             s.connect((m, 65121))
-            # if connected to another master, return the corresponding socket
-            return s
-        except socket.timeout:
+            print(f'Connected with master: {m}')
+            info_obtaining_thread = Thread(target=get_other_nodes, args=(s, nodes))
+            info_obtaining_thread.start()
+        except:
             continue
 
 def main():
     masters = get_master_nodes()
 
-    master_soc = contact_master(masters)
+    nodes = OtherNodes()
+    contact_masters(masters, nodes)
 
-    if master_soc:
-        master_soc.send('give'.encode())
-        received_node_info = master_soc.recv(99999999)
-        for i in received_node_info:
+    if nodes.hosts:
+        print("Active nodes: ")
+        for i in sorted(list(nodes.hosts)):
             print(i)
     else:
         print("We hoped this day would never come...")

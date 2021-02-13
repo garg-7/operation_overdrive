@@ -6,7 +6,7 @@ import time
 
 class NodesInfo:
     def __init__(self):
-        self.hosts = []
+        self.hosts = {}
         self.keep_going = True
 
 def get_master_nodes():
@@ -24,15 +24,16 @@ def contact_masters(masters):
             s.settimeout(2)
             s.connect((m, 65120))
             # if connected to another master, return the corresponding socket
+            print(f'Connected with master: {m}\n')
             return s
         except socket.timeout:
-            print(f'Timed out with {m}')
+            print(f'Timed out with {m}\n')
             continue
 
 def get_nodes_list(master_soc, nodes):
     master_soc.send('give'.encode())
     recv_nodes = master_soc.recv(9999999)
-    nodes.hosts = recv_nodes
+    nodes.hosts = pickle.loads(recv_nodes)
     return
 
 def handle_node_request(soc, client, nodes):
@@ -40,7 +41,7 @@ def handle_node_request(soc, client, nodes):
     if get_request == 'give':
         soc.sendall(pickle.dumps(nodes.hosts))
     latest_time = time.time()
-    nodes.hosts.append((client, latest_time))
+    nodes.hosts[client[0]] = latest_time
     return
 
 def listen_for_new_nodes(nodes):
@@ -91,7 +92,11 @@ def main():
     # sys.exit()
     # if server found, obtain host list
     if existing_master:
+        print("Requesting this master for node data...")
         get_nodes_list(existing_master, nodes)
+        print("Node data received:")
+        for i in nodes.hosts:
+            print(i)
 
     # listening for new nodes trying to find other nodes
     listening_for_nodes_thread = Thread(target=listen_for_new_nodes,
@@ -112,6 +117,7 @@ def main():
     while True:
         if input().lower()=='stop':
             nodes.keep_going = False
+            sys.exit()
             break
     
     listening_for_masters_thread.join()
