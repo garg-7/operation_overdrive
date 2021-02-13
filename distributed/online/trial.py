@@ -27,8 +27,8 @@ files = tuple(zip(files, portData))
 # data={"age":20, "address":["new york", "los angeles"]}
 
 #push data
-# for file in files :
-#     db.push(file)
+for file in files :
+    db.push(file)
 # db.push(data)
 
 

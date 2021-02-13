@@ -1,32 +1,32 @@
 # pip install mysql-connector-python
 # https://dev.mysql.com/downloads/installer/
 
-import mysql.connector
+import pyrebase
 import os
 import getpass
 import socket
 from _thread import start_new_thread
 
-def initiateSocketConnection(mydb,mycursor):
+def initiateSocketConnection(db):
     host = socket.gethostname()
     print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
     s = socket.socket()
     port=9000
     s.bind((host,port))
     s.listen()
-    manageConnections(s,mydb,mycursor)
+    manageConnections(s,db)
 
-def manageConnections (s,mydb,mycursor):
+def manageConnections (s,db):
     currentPortNumber = 9001
     while True:  
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
-        start_new_thread(handleConnection, (clientsocket , address,currentPortNumber,mydb,mycursor))
+        start_new_thread(handleConnection, (clientsocket , address,currentPortNumber,db))
         currentPortNumber = currentPortNumber + 1  
         print(f"Connected with {address}")
 
 
-def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
+def handleConnection(currentClient,address,currentPortNumber,db) :
     passwordCheck =  currentClient.recv(100).decode()
     if(passwordCheck == "letmepass"):
         print(f"Password authentication successful with {address}")
@@ -36,9 +36,9 @@ def handleConnection(currentClient,address,currentPortNumber,mydb,mycursor) :
         intermediateStep =   currentClient.recv(100).decode()
         
         print("Updating database")
-        deteleTableData(mycursor,mydb)
+        deteleTableData(db)
         files=getFileInfo(str("9000"))
-        createTableEntry(mycursor,mydb,files)
+        createTableEntry(db,files)
         for client in clients :
             try :
                 client[0].send(str("Update Database").encode())
@@ -85,29 +85,20 @@ def main():
 
     currentHostName = socket.gethostname()
     
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
-    
-    initiateSocketConnection(mydb,mycursor)
-    
-    # files = getFileInfo(currentHostName,portNumber)
-    
-    # databaseCreation(mycursor)
-    
-    # printDatabases(mycursor)
-    
-    # printDatabaseName(mydb)
-    
-    # createTable(mycursor)
-    
-    # printTables(mycursor)
-    
-    # createTableEntry(mycursor,mydb,files)
-    
-    # deteleTableData(mycursor,mydb)
-    
-    # printTableData(mycursor)
+    firebaseConfig = {"apiKey": "AIzaSyCEjFB1a4S_B8immDooU32nXWyUioOC3Ww",
+    "authDomain": "protocolsinarms.firebaseapp.com",
+    "databaseURL": "https://protocolsinarms-default-rtdb.firebaseio.com",
+    "projectId": "protocolsinarms",
+    "storageBucket": "protocolsinarms.appspot.com",
+    "messagingSenderId": "159255006191",
+    "appId": "1:159255006191:web:df5d6ca506df02def1041a",
+    "measurementId": "G-0FKTBHCNWQ"}
 
+    firebase = pyrebase.initialize_app(firebaseConfig)
+
+    db = firebase.database()
+    
+    initiateSocketConnection(db)
 
 
 #get credentials ::
@@ -133,56 +124,24 @@ def getFileInfo(portNum):
     files = tuple(zip(files, userData,portData))
     return files 
 
-#new database creation ::
-def databaseCreation(mycursor):
-    mycursor.execute("Create database fileInfo")
-
-# print all databases that exist ::
-def printDatabases(mycursor):
-    mycursor.execute("Show databases")
-    for db in mycursor:
-        print (db)
-
-#Create a new table  ::
-def createTable(mycursor):
-    mycursor.execute("Create table filebackupData(file varchar(200), owner varchar(200), port varchar(200))")
-
-
-#print all tables that exist ::
-def printTables(mycursor):
-    mycursor.execute("Show tables")
-    for tb in mycursor :
-        print(tb)
 
 #create entry in table ::
-def createTableEntry(mycursor,mydb,files):
-    mycursor.execute("Select * from filebackupdata")
-    alreadyInputFiles = mycursor.fetchall()
-    
-    dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
+def createTableEntry(db,files):
     for file in files :
-        if file not in alreadyInputFiles :
-            mycursor.execute(dataPush,file)
-            mydb.commit()
+        db.push(file)
 
 
 #delete table contents  ::
-def deteleTableData(mycursor,mydb) : 
-    deleteOperation = "DELETE FROM filebackupdata"
-    mycursor.execute(deleteOperation)
-    mydb.commit()
+def deteleTableData(db) : 
+    db.remove()
  
 
 #print table contents ::
-def printTableData(mycursor):
-    mycursor.execute("Select * from filebackupdata")
-    myFiles = mycursor.fetchall()
+def printTableData(db):
+    tasks = db.get()
 
-    for row in myFiles:
-        print (row)
-    
-def printDatabaseName(mydb) :
-    print(mydb)
+    for task in tasks.each() :
+        print(task.val())
     
 clients = []
 
