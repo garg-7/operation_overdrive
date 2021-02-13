@@ -16,9 +16,9 @@ def get_master_nodes():
 
 def get_other_nodes(soc, nodes):
     soc.send('give'.encode())
-    received_node_info = soc.recv(99999999)
-    for i in pickle.loads(received_node_info):
-        nodes.hosts.add(i[0][0])
+    received_node_info = pickle.loads(soc.recv(99999999))
+    for i in received_node_info.keys():
+        nodes.hosts.add(i)
 
 def contact_masters(masters, nodes):
     # masters are listening on 65121 for new nodes
@@ -46,7 +46,7 @@ def main():
     else:
         print("We hoped this day would never come...")
         print("Unfortunately it has...")
-        print("[FATAL ERROR] No master nodes online.")
+        print("[FATAL ERROR] No nodes online.")
         sys.exit()
     
     # do the database thing now...

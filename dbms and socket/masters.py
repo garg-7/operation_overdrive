@@ -95,8 +95,8 @@ def main():
         print("Requesting this master for node data...")
         get_nodes_list(existing_master, nodes)
         print("Node data received:")
-        for i in nodes.hosts:
-            print(i)
+        for i in nodes.hosts.keys():
+            print(i, nodes.hosts[i])
 
     # listening for new nodes trying to find other nodes
     listening_for_nodes_thread = Thread(target=listen_for_new_nodes,
