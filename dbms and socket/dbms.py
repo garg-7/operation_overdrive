@@ -22,7 +22,7 @@ def manageConnections (s,mydb,mycursor):
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
         start_new_thread(handleConnection, (clientsocket , address,currentPortNumber,mydb,mycursor))
-        currentPortNumber = currentPortNumber + 1  
+        currentPortNumber = currentPortNumber + 1
         print(f"Connected with {address}")
 
 
