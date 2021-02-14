@@ -45,7 +45,7 @@ def get_nodes_list(master_soc, nodes):
     master_soc.send('give'.encode())
     recv_nodes = master_soc.recv(9999999)
     recv_data = pickle.loads(recv_nodes)
-    
+
     for file in recv_data :
         nodes.database.add(file)
     return
@@ -78,15 +78,10 @@ def initiateSocketConnection(nodes):
     port=65521
     s.bind((host,port))
     s.listen()
-    manageConnections(s, nodes)
-
-def manageConnections (s, nodes):
-    # currentPortNumber = 9001
-    while True:  
+    while True:
         clientsocket, address = s.accept()
         clients.append((clientsocket, address))
         start_new_thread(handleConnection, (clientsocket, address, nodes))
-        # currentPortNumber = currentPortNumber + 1
         print(f"Connected with {address}")
 
 
@@ -97,43 +92,65 @@ def handleConnection(currentClient,address,nodes) :
         currentClient.send(str("Correct").encode())
         intermediateStep =   currentClient.recv(100).decode()
 
-        handleBiConnection(address, nodes)
-            
         purposeCheck =  currentClient.recv(100).decode()
-        
+
         if(purposeCheck == 'Y'):
             print(f"File Transfer Requested by address : {address}")
         else :
             #do something
-            print(f"{address} will participate in file transfer")   
-    
-    else : 
-        #server to be closed 
+            print(f"{address} will participate in file transfer")
+
+    else :
+        #server to be closed
         print(f"Password authentication unsuccessful with {address}")
         currentClient.send(str("Wrong").encode())
-       
-def handleBiConnection(address, nodes):
-    s = socket.socket()
-    host = address
-    port = 65122
-    s.connect((host, port)) 
 
-    while True :
-        updateRequest = s.recv(100).decode()
-        if updateRequest == "update" : 
-            print("Updating database")          
-            s.send("give").encode()
-            get_file_info = pickle.loads(s.recv(99999999))
-            
-            for item in get_file_info:
-                nodes.database.add(item)
-            
-            print("Database updated successfully")
+
+def handle_db_update(s, nodes):
+    s.sendall('give_update'.encode())
+    print("Updating database")
+    get_file_info = pickle.loads(s.recv(99999999))
+
+    mydb = mysql.connector.connect(host=socket.gethostbyname(socket.gethostname()), user="root", passwd="letmepass", database="fileInfo")
+    mycursor = mydb.cursor()
+
+    # remove existing entries from db
+    mycursor.execute(f"DELETE FROM filebackupdata WHERE owner={get_file_info[0][0]}")
+    mydb.commit()
+    # add received entries to db
+    push_cmd = (f"Insert into filebackup(file, owner) ")
     
+    for i in get_file_info:
+        mycursor.execute(push_cmd, i)
+        mydb.commit()
+
+    # remove existing entries from main memory
+    for i in nodes.database:
+        if i[0]==get_file_info[0][0]:
+            nodes.database.remove(i)
+
+    # add received entries to main memory
+    for item in get_file_info:
+        nodes.database.add(item)
+
+    print("Database updated successfully")
+    
+def listen_for_db_update(nodes):
+    # listen on 65122
+    inviting_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    current_master_ip = socket.gethostbyname(socket.gethostname())
+    inviting_soc.bind((current_master_ip, 65122))
+    inviting_soc.listen()
+    while nodes.keep_going:
+        client_soc, client = inviting_soc.accept()
+        db_handling_thread = Thread(target=handle_db_update,
+                                        args=(client_soc, client[0], nodes, ))
+        db_handling_thread.start()
+
 def main():
     # currentUserName = getpass.getuser()
     # print(currentUserName)
-    
+
     masters = get_master_nodes()
     nodes = NodesInfo()
     # find any other active servers
@@ -148,8 +165,8 @@ def main():
             # print("Node data received:")
             # for i in nodes.hosts.keys():
             #     print(i, nodes.hosts[i])
-    
-    deteleTableData()    
+
+    deteleTableData()
     createTableEntry(nodes.database)
 
     # listening for new masters joining in
@@ -158,22 +175,24 @@ def main():
     listening_for_masters_thread.start()
     print('Listening for requests from other masters...')
 
+    listening_for_db_update_thread = Thread(target=listen_for_db_update,
+                                            args=(nodes, ))
+    listening_for_db_update_thread.start()
+
     currentHostName = socket.gethostname()
-    
+
     mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
-    
-    
-    
+
     initiateSocketConnection(nodes)
 
 
 #get credentials ::
 def getCredentials():
-    hostname = socket.gethostname()    
-    IPAddr = socket.gethostbyname(hostname)    
-    print("Your Computer Name is:" + hostname)    
-    print("Your Computer IP Address is:" + IPAddr)    
+    hostname = socket.gethostname()
+    IPAddr = socket.gethostbyname(hostname)
+    print("Your Computer Name is:" + hostname)
+    print("Your Computer IP Address is:" + IPAddr)
 
     # Your Computer Name is:LAPTOP-RBAGRA85
     # Your Computer IP Address is:192.168.56.1
@@ -187,9 +206,9 @@ def getFileInfo(portNum):
     for file in (files):
         userData.append(currentHostName)
         portData.append(portNum)
-        
+
     files = tuple(zip(files, userData,portData))
-    return files 
+    return files
 
 #new database creation ::
 def databaseCreation(mycursor):
@@ -217,10 +236,10 @@ def createTableEntry(files):
     hostName = socket.gethostname()
     mydb = mysql.connector.connect(host=hostName, user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
-    
+
     mycursor.execute("Select * from filebackupdata")
     alreadyInputFiles = mycursor.fetchall()
-    
+
     dataPush = "Insert into filebackupdata(file, owner) values (%s, %s)"
     for file in files :
         if file not in alreadyInputFiles :
@@ -229,37 +248,37 @@ def createTableEntry(files):
 
 
 #delete table contents  ::
-def deteleTableData() : 
+def deteleTableData() :
     hostName = socket.gethostname()
     mydb = mysql.connector.connect(host=hostName, user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
-    
+
     deleteOperation = "DELETE FROM filebackupdata"
     mycursor.execute(deleteOperation)
     mydb.commit()
- 
+
 
 #print table contents ::
 def printTableData():
     hostName = socket.gethostname()
     mydb = mysql.connector.connect(host=hostName, user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
-    
+
     mycursor.execute("Select * from filebackupdata")
     myFiles = mycursor.fetchall()
 
     for row in myFiles:
         print (row)
-    
+
 def printDatabaseName(mydb) :
     print(mydb)
-    
+
 clients = []
 
 if __name__ == '__main__' :
     main()
-    
-    
+
+
 #65120 : master listening to other masters
 #65121 : master listening to other nodes
 #65122 : client listening to other masters

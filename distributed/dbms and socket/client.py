@@ -68,35 +68,28 @@ def receiveFilesFromServer(s,fileName):
     print("The file is not available at the requested endpoint")
 
 def sendFileInfoAllMasters(files, nodes) :
-    
     masters = get_master_nodes()
     nodes.masterNodes = []
     nodes.masterBiSockets = []
     
-    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    current_master_ip = socket.gethostbyname(socket.gethostname())
-    soc.bind((current_master_ip, 65122))
-    soc.listen()
-    
-    for m in masters : 
+    for m in masters:
         try:
-            while True :
-                masterClientSocket, masterClient = soc.accept()
-
-                nodes.masterNodes.append(m)
-                nodes.masterBiSockets.append(s)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(2)
+            s.connect((m, 65122))
+            # if connected to another master, return the corresponding socket
+            print(f'Connected with master: {m}\n')
+            nodes.masterNodes.append(m)
+            nodes.masterBiSockets.append(s)
         except:
             continue
-    
-    
+
     for m in nodes.masterBiSockets :
         sendFileInfoSingleMaster(files, m)
 
 def sendFileInfoSingleMaster(files,masterClientSocket) :
-    send_request = masterClientSocket.send("update").encode()
-    get_request = masterClientSocket.recv(100).decode()
-    
-    if get_request == "give":
+    get_request = masterClientSocket.recv(19000).decode()
+    if get_request == 'give_update':
         masterClientSocket.sendall(pickle.dumps(files))
 
 # def handleBiConnection(nodes, files, m):
@@ -126,11 +119,6 @@ def receiveFiles(s, nodes, files):
             
             fileName = input("Enter the filename that you want alongwith the extension ::  ")
             hostName = input("Enter the hostname where the desired file is located ::  ")
-            # portName = input("Enter the port number where socket connection is to be established ::  ")
-            # portName = int(portName)
-            
-            # if portName == 9000 :
-            #     start_new_thread(receiveFilesFromServer, (s,fileName))
             
             sGetFiles = socket.socket()
             sGetFiles.connect((hostName, 65123))
@@ -150,7 +138,7 @@ def receiveFiles(s, nodes, files):
                 files = getFileInfo()
                 sendFileInfoAllMasters(files, nodes)
                 print("Database Updated Successfully")
-            else :
+            else:
                 print("The file is not available at the requested endpoint")
         
     else :
@@ -178,7 +166,6 @@ def handleConnection(nodes, files):
             print("Password authentication unsuccessful")
             print("The connection will be aborted")
             exit()
-        
     
     start_new_thread(serverConnection, (nodes, ))
     
@@ -265,18 +252,18 @@ def printTables(mycursor):
         print(tb)
 
 #create entry in table ::
-def createTableEntry(files):
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
-    mycursor.execute("Select * from filebackupdata")
-    alreadyInputFiles = mycursor.fetchall()
+# def createTableEntry(files):
+#     mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+#     mycursor = mydb.cursor()
+#     mycursor.execute("Select * from filebackupdata")
+#     alreadyInputFiles = mycursor.fetchall()
     
-    dataPush = "Insert into filebackupdata(file, owner, port) values (%s, %s, %s)"
-    for file in files :
-        if file not in alreadyInputFiles :
-            # print(f" new entry              :::                    {file}")
-            mycursor.execute(dataPush,file)
-            mydb.commit()
+#     dataPush = "Insert into filebackupdata(file, owner) values (%s, %s)"
+#     for file in files :
+#         if file not in alreadyInputFiles :
+#             # print(f" new entry              :::                    {file}")
+#             mycursor.execute(dataPush,file)
+#             mydb.commit()
 
 
 #delete table contents  ::
