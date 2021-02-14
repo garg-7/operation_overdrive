@@ -24,13 +24,12 @@ def get_master_nodes():
 
 def serverConnection(nodes):
     host = socket.gethostbyname(socket.gethostname())
-    print(f"Enter the following address on the clients' ends for the socket connection :: {host} and the following port number :: 65123")
+    # print(f"Enter the following address on the clients' ends for the socket connection :: {host} and the following port number :: 65123")
     s = socket.socket()
     port=65123
     s.bind((host,port))
     s.listen()
-    #something
-    
+
     while True:  
         clientsocket, address = s.accept()
         start_new_thread(handleServerConnection, (clientsocket , address))
@@ -105,8 +104,7 @@ def sendFileInfoSingleMaster(files,masterClientSocket) :
 #         start_new_thread(sendFileInfoSingleMaster, (files,masterClientSocket))
 
 def receiveFiles(s, nodes, files):
-    print("Enter Y if you want to receive a file or N if you want to participate in the file transfer")
-    purpose = input()
+    purpose = input("Do you want to receive a file? (Y/N)")
     s.send(purpose.encode())
     
     # start_new_thread(handleBiConnection, (nodes, files, m))
@@ -146,29 +144,28 @@ def receiveFiles(s, nodes, files):
         print("If you want to request for a file, connect again.")
     
 def handleConnection(nodes, files):
-    print("Enter the password to authenticate the connection ! ")
-    passwordCheck = input()
+    passwordCheck = input("Enter the password to authenticate the connection:  ")
 
     for s in nodes.activeMasterSockets : 
         s.send(passwordCheck.encode())
         
         # while True :
-        passwordVerified = ""
         passwordVerified = s.recv(100).decode()
-        s.send(passwordCheck.encode()) #intermediate step
         
-        print (f"Received input ::             {passwordVerified} ")
+        print (f"Received input :: {passwordVerified} ")
         if(passwordVerified == "Correct") : 
             print("Password authentication successful")
-            start_new_thread(receiveFiles, (s, nodes, files))
-            
+            t3 = Thread(target=sendFileInfoAllMasters, args=(files, nodes))
+            t3.start()
+            t1 = Thread(target=receiveFiles, args=(s, nodes, files))
+            t1.start()
         elif (passwordVerified == "Wrong") : 
             print("Password authentication unsuccessful")
             print("The connection will be aborted")
             exit()
     
-    start_new_thread(serverConnection, (nodes, ))
-    
+    t2 = Thread(target=serverConnection, args=(nodes, ))
+    t2.start()
         # elif (passwordVerified == "Update Database") : 
         #     # print("second last")
         #     files=getFileInfo(portObject.currentPortNumber)
@@ -196,7 +193,8 @@ def initiateSocketConnection(masters, nodes, files):
         info_obtaining_thread = Thread(target=handleConnection, args=(nodes, files))
         info_obtaining_thread.start()
         
-        
+    else:
+        print('No active master nodes.')
         # handleConnection(s)
 
 def main():
@@ -205,8 +203,8 @@ def main():
     
     currentHostName = socket.gethostname()
     
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
+    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    # mycursor = mydb.cursor()
     
     masters = get_master_nodes()
     files = getFileInfo()

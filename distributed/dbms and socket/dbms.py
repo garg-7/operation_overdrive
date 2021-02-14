@@ -72,10 +72,10 @@ def listen_for_masters(nodes):
 
 
 def initiateSocketConnection(nodes):
-    host = socket.gethostname()
+    host = socket.gethostbyname(socket.gethostname())
     print(f"Enter the following address on the clients' ends for the socket connection :: {host}")
     s = socket.socket()
-    port=65521
+    port=65121
     s.bind((host,port))
     s.listen()
     while True:
@@ -89,9 +89,8 @@ def handleConnection(currentClient,address,nodes) :
     passwordCheck =  currentClient.recv(100).decode()
     if(passwordCheck == "letmepass"):
         print(f"Password authentication successful with {address}")
-        currentClient.send(str("Correct").encode())
-        intermediateStep =   currentClient.recv(100).decode()
-
+        currentClient.send("Correct".encode())
+        
         purposeCheck =  currentClient.recv(100).decode()
 
         if(purposeCheck == 'Y'):
@@ -115,10 +114,10 @@ def handle_db_update(s, nodes):
     mycursor = mydb.cursor()
 
     # remove existing entries from db
-    mycursor.execute(f"DELETE FROM filebackupdata WHERE owner={get_file_info[0][0]}")
-    mydb.commit()
+    # mycursor.execute(f"DELETE FROM filebackupdata WHERE owner={get_file_info[0][0]}")
+    # mydb.commit()
     # add received entries to db
-    push_cmd = (f"Insert into filebackup(file, owner) ")
+    push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
     
     for i in get_file_info:
         mycursor.execute(push_cmd, i)
@@ -143,8 +142,9 @@ def listen_for_db_update(nodes):
     inviting_soc.listen()
     while nodes.keep_going:
         client_soc, client = inviting_soc.accept()
+        print(f'{client[0]} sharing update')
         db_handling_thread = Thread(target=handle_db_update,
-                                        args=(client_soc, client[0], nodes, ))
+                                        args=(client_soc, nodes, ))
         db_handling_thread.start()
 
 def main():
@@ -181,8 +181,8 @@ def main():
 
     currentHostName = socket.gethostname()
 
-    mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    mycursor = mydb.cursor()
+    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
+    # mycursor = mydb.cursor()
 
     initiateSocketConnection(nodes)
 
@@ -222,7 +222,7 @@ def printDatabases(mycursor):
 
 #Create a new table  ::
 def createTable(mycursor):
-    mycursor.execute("Create table filebackupData(file varchar(200), owner varchar(200), port varchar(200))")
+    mycursor.execute("Create table filebackupData(file varchar(200), owner varchar(200))")
 
 
 #print all tables that exist ::
@@ -249,8 +249,8 @@ def createTableEntry(files):
 
 #delete table contents  ::
 def deteleTableData() :
-    hostName = socket.gethostname()
-    mydb = mysql.connector.connect(host=hostName, user="root",passwd="letmepass", database="fileInfo")
+    host = socket.gethostbyname(socket.gethostname())
+    mydb = mysql.connector.connect(host=host, user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
 
     deleteOperation = "DELETE FROM filebackupdata"
