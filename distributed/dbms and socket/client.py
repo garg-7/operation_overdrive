@@ -45,6 +45,7 @@ def handleServerConnection(clientsocket, address):
             f = open(os.path.join('backup', fileRequested) , 'rb')
             file_data = f.read(9999999)
             clientsocket.send(file_data)
+            f.close()
             print('File transfer completed')
         else :
             fileAvailability = "N"
@@ -52,19 +53,6 @@ def handleServerConnection(clientsocket, address):
             print("This file is not present at this endpoint, kindly try again")
             #file not present
 
-
-def receiveFilesFromServer(s,fileName):
-    s.send(fileName.encode())
-    fileAvaibility = s.recv(100).decode()
-    if fileAvaibility == "Y" :
-        print("The requested file is getting transferred !! ")
-        filename = os.path.join('backup', fileName)
-        f = open(filename, 'wb')
-        file_data = s.recv(9999999)
-        f.write(file_data)
-        f.close()
-        print("File  transferred and saved in the backup folder with the same file name !")
-    print("The file is not available at the requested endpoint")
 
 def sendFileInfoAllMasters(files, nodes) :
     masters = get_master_nodes()
@@ -92,25 +80,11 @@ def sendFileInfoSingleMaster(files,masterClientSocket) :
         masterClientSocket.sendall(pickle.dumps(files))
         masterClientSocket.recv(1000)
 
-# def handleBiConnection(nodes, files, m):
-#     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     current_master_ip = socket.gethostbyname(socket.gethostname())
-#     soc.bind((current_master_ip, 65122))
-#     soc.listen()
-
-#     while True :
-#         masterClientSocket, masterClient = soc.accept()
-#         nodes.masterBiSockets.append(masterClientSocket)
-        
-#         start_new_thread(sendFileInfoSingleMaster, (files,masterClientSocket))
-
 def receiveFiles(s, nodes, files):
     purpose = input("Do you want to receive a file? (Y/N)")
     s.send(purpose.encode())
-    
-    # start_new_thread(handleBiConnection, (nodes, files, m))
-    
-    if purpose == "Y" :
+
+    if purpose.lower() == "y"  :
         
         while True :
             print("Following is the file info of all the data available with associated host and port number")
@@ -173,17 +147,6 @@ def handleConnection(nodes, files):
     
     t2 = Thread(target=serverConnection, args=(nodes, ))
     t2.start()
-        # elif (passwordVerified == "Update Database") : 
-        #     # print("second last")
-        #     files=getFileInfo(portObject.currentPortNumber)
-        #     createTableEntry(files)
-        #     print("Database successfully updated")
-            
-        # else :
-        #     serverPortNumber = int(passwordVerified)
-        #     portObject.currentPortNumber = serverPortNumber
-        #     start_new_thread(serverConnection, (serverPortNumber,))    
-
 def initiateSocketConnection(masters, nodes, files):
     for m in masters : 
         try:
@@ -205,30 +168,11 @@ def initiateSocketConnection(masters, nodes, files):
         # handleConnection(s)
 
 def main():
-    # currentUserName = getpass.getuser()
-    # print(currentUserName)
-    
-    # currentHostName = socket.gethostname()
-    
-    # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-    # mycursor = mydb.cursor()
-    
     masters = get_master_nodes()
     files = getFileInfo()
 
     nodes = OtherNodes()
-    # contact_masters(masters, nodes, files)
 
-    # if nodes.hosts:
-    #     print("Active nodes: ")
-    #     for i in sorted(list(nodes.hosts)):
-    #         print(i)
-    # else:
-    #     print("We hoped this day would never come...")
-    #     print("Unfortunately it has...")
-    #     print("[FATAL ERROR] No nodes online.")
-    #     sys.exit()
-    
     initiateSocketConnection(masters,nodes,files)
     
 
@@ -256,27 +200,6 @@ def printTables(mycursor):
     for tb in mycursor :
         print(tb)
 
-#create entry in table ::
-# def createTableEntry(files):
-#     mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
-#     mycursor = mydb.cursor()
-#     mycursor.execute("Select * from filebackupdata")
-#     alreadyInputFiles = mycursor.fetchall()
-    
-#     dataPush = "Insert into filebackupdata(file, owner) values (%s, %s)"
-#     for file in files :
-#         if file not in alreadyInputFiles :
-#             # print(f" new entry              :::                    {file}")
-#             mycursor.execute(dataPush,file)
-#             mydb.commit()
-
-
-#delete table contents  ::
-# def deteleTableData(mycursor,mydb) : 
-#     deleteOperation = "DELETE FROM filebackupdata"
-#     mycursor.execute(deleteOperation)
-#     mydb.commit()
- 
 
 #print table contents ::
 def printTableData(nodes):      
@@ -297,7 +220,6 @@ def printTableData(nodes):
     
 def printDatabaseName(mydb) :
     print(mydb)
-
 
 if __name__ == '__main__' :
     main()
