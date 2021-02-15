@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 from threading import Thread
 
-WIDTH = 1920  # default
-HEIGHT = 1080  # default
+WIDTH = 1366  # default
+HEIGHT = 768  # default
 HOST = "0.0.0.0"  # default
 PORT = 9999  # default
 
@@ -43,11 +43,11 @@ def connect_to_server():
 
     clock = pygame.time.Clock()
     # display screen resolution, get it from your OS settings
-    SCREEN_SIZE = (1920, 1080)
+    SCREEN_SIZE = (1366, 768)
     # define the codec
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("client_sceen.avi", fourcc, 8.0, (1920, 1080))
+    out = cv2.VideoWriter("client_sceen.avi", fourcc, 12.0, (1366, 768))
 
     ADDR = (HOST, PORT)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,13 +67,13 @@ def connect_to_server():
 
             img = pygame.image.fromstring(pixels, (WIDTH, HEIGHT), 'RGB')
             try:
-                pygame.image.save_extended(img, "loser.png")
+                pygame.image.save_extended(img, "temp.png")
             except pygame.error:
                 continue
                 
-            variable = cv2.imread('loser.png')
+            variable = cv2.imread('temp.png')
 
-            # cv2.imshow('loser', variable)
+            # cv2.imshow('temp', variable)
 
             # convert these pixels to a proper numpy array to work with OpenCV
             frame = np.array(variable)
@@ -87,6 +87,7 @@ def connect_to_server():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     watching = False
+                    out.release()
                     break
                 elif event.type == pygame.VIDEORESIZE:
                     lWIDTH, lHEIGHT = event.dict['size']
