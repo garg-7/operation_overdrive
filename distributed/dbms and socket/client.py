@@ -90,6 +90,7 @@ def sendFileInfoSingleMaster(files,masterClientSocket) :
     get_request = masterClientSocket.recv(19000).decode()
     if get_request == 'give_update':
         masterClientSocket.sendall(pickle.dumps(files))
+        masterClientSocket.recv(1000)
 
 # def handleBiConnection(nodes, files, m):
 #     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
