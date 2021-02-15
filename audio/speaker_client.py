@@ -35,7 +35,7 @@ def main():
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 2
-    RATE = 44100
+    RATE = 48000
     WAVE_OUTPUT_FILENAME = "gotten/output.wav"
     shost = input("Enter server IP")
     sport = 11112
