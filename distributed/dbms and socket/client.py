@@ -77,7 +77,7 @@ def sendFileInfoAllMasters(files, nodes) :
             s.settimeout(2)
             s.connect((m, 65122))
             # if connected to another master, return the corresponding socket
-            print(f'Connected with master: {m}\n')
+            print(f'Sending DB update to master: {m}')
             nodes.masterNodes.append(m)
             nodes.masterBiSockets.append(s)
         except:
@@ -201,7 +201,7 @@ def main():
     # currentUserName = getpass.getuser()
     # print(currentUserName)
     
-    currentHostName = socket.gethostname()
+    # currentHostName = socket.gethostname()
     
     # mydb = mysql.connector.connect(host="LAPTOP-RBAGRA85", user="root",passwd="letmepass", database="fileInfo")
     # mycursor = mydb.cursor()
@@ -265,25 +265,24 @@ def printTables(mycursor):
 
 
 #delete table contents  ::
-def deteleTableData(mycursor,mydb) : 
-    deleteOperation = "DELETE FROM filebackupdata"
-    mycursor.execute(deleteOperation)
-    mydb.commit()
+# def deteleTableData(mycursor,mydb) : 
+#     deleteOperation = "DELETE FROM filebackupdata"
+#     mycursor.execute(deleteOperation)
+#     mydb.commit()
  
 
 #print table contents ::
 def printTableData(nodes):      
-    for m in nodes.masterNodes :
+    for ip_address in nodes.masterNodes :
         try :
-            ipAddress = nodes.masterNodes[0]
-            mydb = mysql.connector.connect(host=ipAddress, user="root",passwd="letmepass", database="fileInfo")
+            mydb = mysql.connector.connect(host=ip_address, user="root",passwd="letmepass", database="fileInfo")
             mycursor = mydb.cursor()
             mycursor.execute("Select * from filebackupdata")
             myFiles = mycursor.fetchall()
 
             for row in myFiles:
                 print (row)
-                
+
             break
         except :
             continue

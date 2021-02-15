@@ -108,31 +108,45 @@ def handleConnection(currentClient,address,nodes) :
 def handle_db_update(s, nodes):
     s.sendall('give_update'.encode())
     print("Updating database")
-    get_file_info = pickle.loads(s.recv(99999999))
+    get_file_info = pickle.loads(s.recv(9999999))
 
     mydb = mysql.connector.connect(host=socket.gethostbyname(socket.gethostname()), user="root", passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
 
-    # remove existing entries from db
-    # mycursor.execute(f"DELETE FROM filebackupdata WHERE owner={get_file_info[0][0]}")
+    # mycursor.execute("SELECT ")
+    # # remove existing entries from db
+    # del_cmd = 'DELETE FROM filebackupdata WHERE owner="%s"'
+    # mycursor.execute(del_cmd, get_file_info[0][1])
     # mydb.commit()
-    # add received entries to db
-    push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
-    
-    for i in get_file_info:
-        mycursor.execute(push_cmd, i)
-        mydb.commit()
 
+    # add received entries to db
+    mycursor.execute("Select * from filebackupdata")
+    alreadyInputFiles = set(mycursor.fetchall())
+    for f in get_file_info:
+        alreadyInputFiles.add(f)
+
+    deleteTableData()
+
+    push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
+    for file in alreadyInputFiles:
+            mycursor.execute(push_cmd,file)
+            mydb.commit()
+    
     # remove existing entries from main memory
+    nodes_to_remove = set()
     for i in nodes.database:
         if i[0]==get_file_info[0][0]:
-            nodes.database.remove(i)
+            nodes_to_remove.add(i)
+        
+    for i in nodes_to_remove:
+        nodes.database.remove(i)
 
     # add received entries to main memory
     for item in get_file_info:
         nodes.database.add(item)
 
     print("Database updated successfully")
+    s.sendall("updated".encode())
     
 def listen_for_db_update(nodes):
     # listen on 65122
@@ -166,7 +180,7 @@ def main():
             # for i in nodes.hosts.keys():
             #     print(i, nodes.hosts[i])
 
-    deteleTableData()
+    deleteTableData()
     createTableEntry(nodes.database)
 
     # listening for new masters joining in
@@ -248,7 +262,7 @@ def createTableEntry(files):
 
 
 #delete table contents  ::
-def deteleTableData() :
+def deleteTableData() :
     host = socket.gethostbyname(socket.gethostname())
     mydb = mysql.connector.connect(host=host, user="root",passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
