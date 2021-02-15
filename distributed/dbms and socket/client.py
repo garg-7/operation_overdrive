@@ -284,7 +284,7 @@ def printTableData(nodes):
         try :
             mydb = mysql.connector.connect(host=ip_address, user="root",passwd="letmepass", database="fileInfo")
             mycursor = mydb.cursor()
-            mycursor.execute("Select * from filebackupdata")
+            mycursor.execute("SELECT * FROM filebackupdata ORDER BY file ASC")
             myFiles = mycursor.fetchall()
 
             for row in myFiles:

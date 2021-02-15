@@ -122,15 +122,39 @@ def handle_db_update(s, nodes):
     # add received entries to db
     mycursor.execute("Select * from filebackupdata")
     alreadyInputFiles = set(mycursor.fetchall())
+    print("previously present:")
+    for i in alreadyInputFiles:
+        print(i)
+
     for f in get_file_info:
         alreadyInputFiles.add(f)
-
+    print("what to add overall:")
+    for i in alreadyInputFiles:
+        print(i)
     deleteTableData()
 
     push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
+    changed_tuples = set()
+    tuples_to_remove = set()
+    for i in alreadyInputFiles:
+        try:
+            ip_last_seg = int(i[1].split('.')[-1])
+        except ValueError:
+            changed_tuples.add((i[1], i[0]))
+            tuples_to_remove.add(i)          
+            continue
+
+    for i in tuples_to_remove:
+        alreadyInputFiles.discard(i)
+
+    for i in changed_tuples:
+        alreadyInputFiles.add(i)
+
+    print("things being added:")
     for file in alreadyInputFiles:
-            mycursor.execute(push_cmd,file)
-            mydb.commit()
+        print(file)
+        mycursor.execute(push_cmd,file)
+        mydb.commit()
     
     # remove existing entries from main memory
     nodes_to_remove = set()
