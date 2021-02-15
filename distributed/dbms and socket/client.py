@@ -43,7 +43,7 @@ def handleServerConnection(clientsocket, address):
             clientsocket.send(str(fileAvailability).encode())
             filename = os.path.join('backup', fileRequested)
             f = open(os.path.join('backup', fileRequested) , 'rb')
-            file_data = f.read(9999999999)
+            file_data = f.read(9999999)
             clientsocket.send(file_data)
             print('File transfer completed')
         else :
@@ -60,7 +60,7 @@ def receiveFilesFromServer(s,fileName):
         print("The requested file is getting transferred !! ")
         filename = os.path.join('backup', fileName)
         f = open(filename, 'wb')
-        file_data = s.recv(9999999999)
+        file_data = s.recv(9999999)
         f.write(file_data)
         f.close()
         print("File  transferred and saved in the backup folder with the same file name !")
@@ -118,8 +118,14 @@ def receiveFiles(s, nodes, files):
             fileName = input("Enter the filename that you want alongwith the extension ::  ")
             hostName = input("Enter the hostname where the desired file is located ::  ")
             
-            sGetFiles = socket.socket()
-            sGetFiles.connect((hostName, 65123))
+            try:
+                sGetFiles = socket.socket()
+                sGetFiles.settimeout(3)
+                sGetFiles.connect((hostName, 65123))
+                sGetFiles.settimeout(None)
+            except:
+                print('unable to connect to this node')
+                continue
 
             sGetFiles.send(fileName.encode())
             fileAvaibility = sGetFiles.recv(100).decode()
@@ -128,7 +134,7 @@ def receiveFiles(s, nodes, files):
                 print("The requested file is getting transferred !! ")
                 filename = os.path.join('backup', fileName)
                 f = open(filename, 'wb')
-                file_data = sGetFiles.recv(9999999999)
+                file_data = sGetFiles.recv(9999999)
                 f.write(file_data)
                 f.close()
                 print("File  transferred and saved in the backup folder with the same file name !")
