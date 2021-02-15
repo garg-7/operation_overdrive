@@ -13,6 +13,7 @@ class manager:
         self.frames = []
         self.kept_frames = []
         self.keep_going = True
+        self.play_along = False
 
 
 def recordData(m, stream, CHUNK=1024):
@@ -24,6 +25,7 @@ def recordData(m, stream, CHUNK=1024):
 
 def save_wav(filename, channels, rate, sample_size, frames):
     # save the captured audio into a wav file
+    print("Length of frames array:", len(frames))
     wf = wave.open(filename, 'wb')
     wf.setnchannels(channels)
     wf.setsampwidth(sample_size)
@@ -38,6 +40,7 @@ def main(speaker_manager=manager(), mic_manager=manager(), webcam_manager=manage
     FORMAT = pyaudio.paInt16
     CHANNELS = 2
     RATE = 44100
+    OUT_RATE = 32000
     MIC_OUTPUT_FILENAME = "server_mic.wav"
     SPEAKER_OUTPUT_FILENAME = "server_speaker.wav"
 

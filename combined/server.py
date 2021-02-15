@@ -17,7 +17,8 @@ import util
 
 def send_screen(screen_soc, screen_manager):
     # compress the frame, send its size and then the frame
-    while screen_manager.keep_going:
+    last_time = time.time()
+    while time.time() - last_time < 3:
         try:
             img_bytes = screen_manager.frames[0]
             screen_manager.frames.pop(0)
@@ -29,6 +30,7 @@ def send_screen(screen_soc, screen_manager):
                 screen_soc.send(bytes([size_len]))
                 screen_soc.send(size_bytes)
                 screen_soc.sendall(pixels)
+                last_time = time.time()
             except:
                 print(f'Client Disconnected [{screen_soc}]')
                 screen_manager.keep_going = False
@@ -37,7 +39,8 @@ def send_screen(screen_soc, screen_manager):
 
 
 def send_webcam_feed(webcam_soc, webcam_manager):
-    while webcam_manager.keep_going:
+    last_time = time.time()
+    while time.time() - last_time < 3:
         try:
             frame_to_send = webcam_manager.frames[0]
             # print(max(data_to_be_sent))
@@ -51,6 +54,7 @@ def send_webcam_feed(webcam_soc, webcam_manager):
             except:
                 print('Client not connected anymore...')
             webcam_manager.frames.pop(0)
+            last_time = time.time()
         except IndexError:
             pass
 
@@ -59,11 +63,13 @@ def local_webcam_writer(webcam_manager):
     video_writer = cv2.VideoWriter('server_webcam.avi',
                             cv2.VideoWriter_fourcc(*'MJPG'),
                             1.5, (640, 480))
-    while webcam_manager.keep_going:
+    last_time = time.time()
+    while  time.time() - last_time < 3:
         try:
             frame = webcam_manager.kept_frames[0]
             video_writer.write(frame)
             webcam_manager.kept_frames.pop(0)
+            last_time = time.time()
         except IndexError:
             pass
 
@@ -77,7 +83,8 @@ def local_screen_writer(screen_manager):
     # create the video writer object
     out = cv2.VideoWriter("server_screen.avi", fourcc, 8, SCREEN_SIZE)
 
-    while screen_manager.keep_going:
+    last_time = time.time()
+    while time.time() - last_time < 3:
         try:
             img_bytes = screen_manager.kept_frames[0]
             screen_manager.kept_frames.pop(0)
@@ -89,6 +96,7 @@ def local_screen_writer(screen_manager):
 
             # write the frame to the video file
             out.write(np.asarray(frame))
+            last_time = time.time()
         except IndexError:
             pass
     os.remove("temp/temp_screen.png")
@@ -128,14 +136,20 @@ def record_screen(screen_manager):
 
 
 def share_audio(conn_socket, speaker_manager):
+    start_time = time.time()
+    count = 0
     while speaker_manager.keep_going:
         try:
             data_to_be_sent = speaker_manager.frames[0]
             # print(max(data_to_be_sent))
             conn_socket.send(data_to_be_sent)
             speaker_manager.frames.pop(0)
+            count+=1
         except IndexError:
             pass
+    print(f"count of frames sent: {count}")
+    duration = time.time() - start_time
+    print(f"Audio: {count/duration:.2f} fps over {duration:.2f} seconds ")
 
 
 def main():
