@@ -7,7 +7,7 @@ import pyautogui
 from _thread import start_new_thread
 from test import screenShareSave
 
-coordinates = {"x1": 0, "y1": 0, "x2": 1920, "y2": 1080}
+coordinates = {"x1": 0, "y1": 0, "x2": 1366, "y2": 768}
 
 
 class ApplicationToSnip():
@@ -115,10 +115,9 @@ class server:
                 scr_m.frames.append(img)
 
 
-    def start_server(self):
+    def start_server(self, scr_m):
         HOST = socket.gethostbyname(socket.gethostname())
         PORT = 9999
-        scr_m = manager()
         ADDR = (HOST, PORT)
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(ADDR)
@@ -143,15 +142,16 @@ class server:
             server.close()
 
 
-def saveScreen(input):
-    screenShareSave()
+def saveScreen(input, scr_m):
+    screenShareSave(scr_m)
 
 
 if __name__ == "__main__":
-    start_new_thread(saveScreen, ("screen",))
+    scr_m = manager()
+    start_new_thread(saveScreen, ("screen", scr_m))
     # rootApp = tkinter.Tk(screenName=None, baseName=None, className='Setup', useTk=1)
     # app = ApplicationToSnip(rootApp)
     # rootApp.mainloop()
     # print(coordinates["Rec"])
     SERVER = server(coordinates)
-    SERVER.start_server()
+    SERVER.start_server(scr_m)
