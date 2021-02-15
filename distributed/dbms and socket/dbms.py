@@ -109,48 +109,35 @@ def handle_db_update(s, nodes):
     s.sendall('give_update'.encode())
     print("Updating database")
     get_file_info = pickle.loads(s.recv(9999999))
-
+    incomingAddr = get_file_info[0][1]
     mydb = mysql.connector.connect(host=socket.gethostbyname(socket.gethostname()), user="root", passwd="letmepass", database="fileInfo")
     mycursor = mydb.cursor()
-
-    # mycursor.execute("SELECT ")
-    # # remove existing entries from db
-    # del_cmd = 'DELETE FROM filebackupdata WHERE owner="%s"'
-    # mycursor.execute(del_cmd, get_file_info[0][1])
-    # mydb.commit()
 
     # add received entries to db
     mycursor.execute("Select * from filebackupdata")
     alreadyInputFiles = set(mycursor.fetchall())
+    
     print("previously present:")
+    prev_tuples= set()
     for i in alreadyInputFiles:
+        prev_tuples.add(i)
         print(i)
 
-    for f in get_file_info:
-        alreadyInputFiles.add(f)
-    print("what to add overall:")
-    for i in alreadyInputFiles:
-        print(i)
-    deleteTableData()
-
-    push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
-    changed_tuples = set()
     tuples_to_remove = set()
-    for i in alreadyInputFiles:
-        try:
-            ip_last_seg = int(i[1].split('.')[-1])
-        except ValueError:
-            changed_tuples.add((i[1], i[0]))
-            tuples_to_remove.add(i)          
-            continue
+    for i in prev_tuples:
+        if i[1]==incomingAddr:
+            tuples_to_remove.add(i)
 
     for i in tuples_to_remove:
         alreadyInputFiles.discard(i)
 
-    for i in changed_tuples:
-        alreadyInputFiles.add(i)
+    for f in get_file_info:
+        alreadyInputFiles.add(f)
 
-    print("things being added:")
+    deleteTableData()
+
+    push_cmd = ("INSERT into filebackupdata(file, owner) values (%s, %s)" )
+    print("Tuples Now:")
     for file in alreadyInputFiles:
         print(file)
         mycursor.execute(push_cmd,file)
