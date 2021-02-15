@@ -8,7 +8,7 @@ def screenShareSave():
     # define the codec
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("output.avi", fourcc, 20.0, (SCREEN_SIZE))
+    out = cv2.VideoWriter("server_screen.avi", fourcc, 20.0, (SCREEN_SIZE))
 
     while True:
         # make a screenshot
@@ -17,7 +17,7 @@ def screenShareSave():
         # convert these pixels to a proper numpy array to work with OpenCV
         frame = np.array(img)
         # convert colors from BGR to RGB
-        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # write the frame
         out.write(frame)
         # show the frame

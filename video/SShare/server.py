@@ -71,6 +71,11 @@ class ApplicationToSnip():
         self.snippingCanvas.coords(
             self.rect, self.coordinates["start"]["x"], self.coordinates["start"]["y"], self.coordinates["end"]["x"], self.coordinates["end"]["y"])
 
+class manager:
+    def __init__(self):
+        self.frames = []
+        self.kept_frames = []
+        self.keep_going = True
 
 class server:
     def __init__(self, coordinates):
@@ -79,25 +84,16 @@ class server:
         self.HEIGHT = self.coordinates["y2"]-self.coordinates["y1"]
         self.WIDTH = self.coordinates["x2"]-self.coordinates["x1"]
 
-    def handle_client(self, conn, addr):
+    def handle_client(self, conn, addr, scr_m):
         print(f'Client connected [{addr}]')
-        with mss.mss() as mss_instance:
-            rect = {'top': self.coordinates["y1"], 'left': self.coordinates["x1"],
-                    'width': self.WIDTH, 'height': self.HEIGHT}
-
-            screenRecord = True
-            while screenRecord:
-
-                img = mss_instance.grab(rect)
-
+        screenRecord=True
+        while screenRecord:
+            try:
+                img = scr_m.frames.pop(0)
                 pixels = zlib.compress(img.rgb, 6)
-
                 size = len(pixels)
-
                 size_len = (size.bit_length() + 7) // 8
-
                 size_bytes = size.to_bytes(size_len, 'big')
-
                 try:
                     conn.send(bytes([size_len]))
                     conn.send(size_bytes)
@@ -105,11 +101,24 @@ class server:
                 except:
                     print(f'Client Disconnected [{addr}]')
                     screenRecord = False
+                    scr_m.keep_going=False
                     self.connected -= 1
+            except IndexError:
+                pass
+
+    def record_stream(self, scr_m):
+        with mss.mss() as mss_instance:
+            rect = {'top': self.coordinates["y1"], 'left': self.coordinates["x1"],
+                    'width': self.WIDTH, 'height': self.HEIGHT}
+            while scr_m.keep_going:
+                img = mss_instance.grab(rect)
+                scr_m.frames.append(img)
+
 
     def start_server(self):
         HOST = socket.gethostbyname(socket.gethostname())
         PORT = 9999
+        scr_m = manager()
         ADDR = (HOST, PORT)
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(ADDR)
@@ -122,8 +131,11 @@ class server:
             connected = True
             while connected:
                 conn, addr = server.accept()
+                thread1 = threading.Thread(
+                    target=self.record_stream, args=(scr_m, ))
+                thread1.start()
                 thread = threading.Thread(
-                    target=self.handle_client, args=(conn, addr))
+                    target=self.handle_client, args=(conn, addr, scr_m))
                 thread.start()
                 self.connected += 1
 

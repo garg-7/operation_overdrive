@@ -3,6 +3,7 @@ import zlib
 import pygame
 import cv2
 import numpy as np
+from threading import Thread
 
 WIDTH = 1920  # default
 HEIGHT = 1080  # default
@@ -46,7 +47,7 @@ def connect_to_server():
     # define the codec
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     # create the video write object
-    out = cv2.VideoWriter("client_sceen.avi", fourcc, 20.0, (1920, 1080))
+    out = cv2.VideoWriter("client_sceen.avi", fourcc, 8.0, (1920, 1080))
 
     ADDR = (HOST, PORT)
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -65,9 +66,11 @@ def connect_to_server():
             pixels = zlib.decompress(getAll(server, size))
 
             img = pygame.image.fromstring(pixels, (WIDTH, HEIGHT), 'RGB')
-
-            pygame.image.save_extended(img, "loser.png")
-
+            try:
+                pygame.image.save_extended(img, "loser.png")
+            except pygame.error:
+                continue
+                
             variable = cv2.imread('loser.png')
 
             # cv2.imshow('loser', variable)
