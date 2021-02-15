@@ -21,8 +21,11 @@ def play_audio(speaker_manager, mic_manager, speaker_stream, mic_stream):
             data_to_be_played = speaker_manager.frames[0]
             # speaker_stream.write(data_to_be_played)
             data_to_be_played = mic_manager.frames[0]
-            if max(data_to_be_played)>100:
-                # mic_stream.write(data_to_be_played)
+            try:
+                if max(data_to_be_played)>100:
+                    # mic_stream.write(data_to_be_played)
+                    pass
+            except ValueError:
                 pass
             speaker_manager.frames.pop(0)
             mic_manager.frames.pop(0)
